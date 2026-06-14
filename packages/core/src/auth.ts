@@ -142,7 +142,7 @@ export async function exportHostedEnv(): Promise<Record<string, string>> {
   const config = await loadConfig();
   const creds = await new FileCredentialStore().load();
   if (!creds?.refreshToken) {
-    throw new Error("No refresh token found. Run `liads auth login` first.");
+    throw new Error("No refresh token found. Run `liam auth login` first.");
   }
   return {
     LIADS_CLIENT_ID: config.clientId,
@@ -165,7 +165,7 @@ export async function createTokenProvider(store: CredentialStore = resolveCreden
   let creds = await store.load();
   if (!creds) {
     throw new Error(
-      "Not authenticated. Run `liads auth login` (local) or set LIADS_REFRESH_TOKEN (hosted).",
+      "Not authenticated. Run `liam auth login` (local) or set LIADS_REFRESH_TOKEN (hosted).",
     );
   }
 
@@ -177,6 +177,6 @@ export async function createTokenProvider(store: CredentialStore = resolveCreden
       creds = await refresh(config, creds!.refreshToken, store);
       return creds.accessToken;
     }
-    throw new Error("Access token expired and no valid refresh token. Run `liads auth login` again.");
+    throw new Error("Access token expired and no valid refresh token. Run `liam auth login` again.");
   };
 }

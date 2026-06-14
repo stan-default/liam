@@ -12,7 +12,7 @@ const mcpHandler = createMcpHandler(
   // The adapter's server is the same MCP SDK type; cast across the version boundary.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (server) => registerTools(server as any),
-  {},
+  { serverInfo: { name: "liam", version: "0.1.0" } },
   { basePath: "/api" },
 );
 

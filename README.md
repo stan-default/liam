@@ -1,9 +1,12 @@
-# liads
+# Liam
 
-Create LinkedIn ad campaigns by talking to Claude (MCP) or from a CLI. Built for
-go-to-market teams who want to spin up many campaigns from a contact list and a brief,
-then add creative images themselves. Everything is created as a **draft**, so nothing
-spends until you explicitly activate it in Campaign Manager.
+**Liam** is an ad manager for LinkedIn (LinkedIn Ad Manager). Create campaigns by talking
+to Claude (MCP) or from a CLI. Built for go-to-market teams who want to spin up many
+campaigns from a contact list and a brief, then add creative images themselves. Everything
+is created as a **draft**, so nothing spends until you explicitly activate it in Campaign
+Manager.
+
+> Unofficial and not affiliated with or endorsed by LinkedIn.
 
 > Optimization features (performance insights, Salesforce cross-reference) are on the
 > roadmap. This release covers creation.
@@ -21,7 +24,7 @@ spends until you explicitly activate it in Campaign Manager.
 
 - `@liads/core` — LinkedIn REST client, OAuth, resource modules, CSV + SHA256 hashing, Salesforce reader.
 - `@liads/mcp` — MCP server (stdio for local; reused by the hosted app). **Primary interface.**
-- `@liads/cli` — `liads` CLI over the same core, for scripted batch runs.
+- `@liads/cli` — the `liam` CLI over the same core, for scripted batch runs.
 - `@liads/web` — Next.js app that hosts the MCP over HTTP on Vercel.
 
 ## Prerequisites (everyone needs their own LinkedIn app)
@@ -51,7 +54,7 @@ Register the local MCP server with Claude (Desktop / Code):
 ```json
 {
   "mcpServers": {
-    "liads": { "command": "node", "args": ["/abs/path/linkedin-ads/packages/mcp/dist/index.js"] }
+    "liam": { "command": "node", "args": ["/abs/path/linkedin-ads/packages/mcp/dist/index.js"] }
   }
 }
 ```

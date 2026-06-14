@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "liads": "./dist/index.js"
+    "liam": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
