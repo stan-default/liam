@@ -12,7 +12,7 @@ import {
 } from "@liads/core";
 
 const program = new Command();
-program.name("liam").description("Liam — an ad manager for LinkedIn (CLI)").version("0.1.0");
+program.name("liam").description("Liam, an ad manager for LinkedIn (CLI)").version("0.1.0");
 
 const auth = program.command("auth").description("Authentication");
 auth
