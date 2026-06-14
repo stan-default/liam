@@ -29,14 +29,15 @@ export async function launchFromBrief(
   const { client, getToken } = liads;
   const warnings: string[] = [];
 
-  // 1. Audience (optional, requires Audiences/DMP product).
-  let audienceSegmentUrn: string | undefined;
+  // 1. Audience (optional, requires Audiences/DMP product). The adSegment urn is
+  // only available once matching completes (up to 48h), so it can't be attached
+  // to the campaign in this same run — we surface the segment id to attach later.
+  const audienceSegmentUrn: string | undefined = undefined;
   if (input.audience) {
-    const result = await uploadAudienceFromCsv(client, { ...input.audience, accountId: input.accountId });
-    audienceSegmentUrn = result.adSegmentUrn;
+    const result = await uploadAudienceFromCsv(client, getToken, { ...input.audience, accountId: input.accountId });
     warnings.push(...result.warnings);
     warnings.push(
-      `Audience "${input.audience.name}" created with ${result.uploaded} hashed emails. Matching takes up to 48h before the campaign can serve.`,
+      `Audience "${input.audience.name}" uploaded as segment ${result.segmentId} (${result.uploaded} hashed emails). Attach its adSegment urn to this campaign once it is READY.`,
     );
   } else {
     // No matched audience -> targeting is geo-only; sanity-check it can serve.

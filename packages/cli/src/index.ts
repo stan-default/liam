@@ -56,13 +56,13 @@ audience
   .option("-c, --email-column <col>", "Email column header", "email")
   .action(async (opts) => {
     const liads = await createLiads();
-    const res = await uploadAudienceFromCsv(liads.client, {
+    const res = await uploadAudienceFromCsv(liads.client, liads.getToken, {
       accountId: opts.account ?? (await requireDefaultAccountId()),
       name: opts.name,
       csvPath: opts.csv,
       emailColumn: opts.emailColumn,
     });
-    console.log(`Segment ${res.segmentId} (${res.adSegmentUrn})`);
+    console.log(`Segment ${res.segmentId} — status ${res.status}`);
     console.log(`Uploaded ${res.uploaded} hashed emails (${res.skipped} skipped of ${res.totalRows} rows).`);
     res.warnings.forEach((w: string) => console.warn(`! ${w}`));
   });

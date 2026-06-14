@@ -3,81 +3,108 @@ import { sponsoredAccountUrn } from "../urns.js";
 import type { CreatedEntity } from "./campaignGroups.js";
 
 /**
- * DMP Segments (matched audiences).
+ * DMP Segments (matched audiences) via the list-upload flow:
+ *   1. generateUploadUrl  2. upload hashed CSV  3. create segment
+ *   4. attach list        5. poll until READY -> adSegment urn (up to 48h)
  *
- * NOTE: these endpoints require the separate **Audiences** product on the
- * LinkedIn app, which is NOT included with base Advertising API access. If calls
- * 403, the product needs to be requested/enabled. Field shapes below follow the
- * current versioned API and should be re-verified once the product is live.
+ * Requires the Audiences product on the LinkedIn app. The resolved adSegment urn
+ * (for campaign targeting) is only available once the segment reaches READY.
  */
 
-/** Max hashed rows per LinkedIn list upload. */
+/** Max rows per LinkedIn list upload. */
 export const MAX_SEGMENT_ROWS = 300_000;
-/** LinkedIn's recommended minimum for a healthy match rate. */
+/** Recommended minimum rows for contact lists (companies: 1,000). */
 export const RECOMMENDED_MIN_ROWS = 10_000;
-/** Users added per batch request. */
-const USER_BATCH_SIZE = 10_000;
 
-export async function createDmpSegment(
+export type SegmentType = "USER_LIST_UPLOAD" | "COMPANY_LIST_UPLOAD";
+
+/** Step 1: get a signed URL to upload the CSV to. */
+export async function generateUploadUrl(client: LinkedInClient, accountId: string): Promise<string> {
+  const res = await client.request<{ value: string }>({
+    method: "POST",
+    path: "/dmpSegments",
+    query: { action: "generateUploadUrl" },
+    body: { owner: sponsoredAccountUrn(accountId) },
+  });
+  if (!res.data?.value) throw new Error("generateUploadUrl returned no upload URL");
+  return res.data.value;
+}
+
+/** Step 2: upload the CSV bytes to the signed URL; returns the media URN. */
+export async function uploadListCsv(uploadUrl: string, csv: string, token: string): Promise<string> {
+  const res = await fetch(uploadUrl, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "text/csv" },
+    body: csv,
+  });
+  if (!res.ok) throw new Error(`List CSV upload failed (${res.status}): ${await res.text()}`);
+  const location = res.headers.get("location");
+  if (!location) throw new Error("List upload succeeded but no media location returned");
+  return `urn:li:media:${location}`;
+}
+
+/** Step 3: create the LIST_UPLOAD segment (empty staging entity). */
+export async function createListUploadSegment(
   client: LinkedInClient,
-  opts: { accountId: string; name: string; description?: string },
+  opts: { accountId: string; name: string; type?: SegmentType },
 ): Promise<CreatedEntity> {
   const res = await client.request({
     method: "POST",
     path: "/dmpSegments",
     body: {
       account: sponsoredAccountUrn(opts.accountId),
+      destinations: [{ destination: "LINKEDIN" }],
       name: opts.name,
-      description: opts.description,
-      type: "USER",
-      accessPolicy: "PRIVATE",
-      sourcePlatform: "API_SELF_SERVE",
+      sourcePlatform: "LIST_UPLOAD",
+      type: opts.type ?? "USER_LIST_UPLOAD",
     },
   });
   if (!res.restliId) throw new Error("DMP segment created but no id returned");
   return { id: res.restliId };
 }
 
-/** Adds SHA256-hashed emails to a segment, chunked into batches. */
-export async function addHashedEmails(
+/** Step 4: attach an uploaded list (media URN) to the segment. */
+export async function attachListToSegment(
   client: LinkedInClient,
   segmentId: string,
-  sha256Emails: string[],
-): Promise<{ added: number; batches: number }> {
-  let added = 0;
-  let batches = 0;
-  for (let i = 0; i < sha256Emails.length; i += USER_BATCH_SIZE) {
-    const chunk = sha256Emails.slice(i, i + USER_BATCH_SIZE);
-    await client.request({
-      method: "POST",
-      path: `/dmpSegments/${segmentId}/users`,
-      body: {
-        elements: [
-          {
-            action: "ADD",
-            userIds: chunk.map((hash) => ({ idType: "SHA256_EMAIL", idValue: hash })),
-          },
-        ],
-      },
-    });
-    added += chunk.length;
-    batches += 1;
-  }
-  return { added, batches };
+  mediaUrn: string,
+): Promise<void> {
+  await client.request({
+    method: "POST",
+    path: `/dmpSegments/${segmentId}/listUploads`,
+    body: { inputFile: mediaUrn },
+  });
+}
+
+export interface DmpDestination {
+  destination: string;
+  status?: string;
+  audienceSize?: number;
+  matchedCount?: number;
+  /** The adSegment urn to target, present once status is READY. */
+  destinationSegmentId?: string;
 }
 
 export interface DmpSegmentStatus {
   id: number;
   name: string;
-  status?: string;
-  /** Resolved/matched member count, once processing completes (up to 48h). */
-  audienceSize?: number;
+  type?: string;
+  inputCount?: number;
+  destinations?: DmpDestination[];
 }
 
-export async function getDmpSegment(
-  client: LinkedInClient,
-  segmentId: string,
-): Promise<DmpSegmentStatus> {
+/** Step 5: poll segment status. READY destinations carry the adSegment urn. */
+export async function getDmpSegment(client: LinkedInClient, segmentId: string): Promise<DmpSegmentStatus> {
   const res = await client.request<DmpSegmentStatus>({ path: `/dmpSegments/${segmentId}` });
   return res.data;
+}
+
+/** Convenience: the adSegment urn for targeting, or undefined until READY. */
+export function readyAdSegmentUrn(segment: DmpSegmentStatus): string | undefined {
+  return segment.destinations?.find((d) => d.status === "READY")?.destinationSegmentId;
+}
+
+/** Delete a DMP segment (e.g. cleanup of an empty/failed segment). */
+export async function deleteDmpSegment(client: LinkedInClient, segmentId: string): Promise<void> {
+  await client.request({ method: "DELETE", path: `/dmpSegments/${segmentId}` });
 }

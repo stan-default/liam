@@ -62,7 +62,7 @@ export function registerTools(server: McpServer): void {
     async (args) => {
       try {
         const liads = await createLiads();
-        return ok(await uploadAudienceFromCsv(liads.client, AudienceUploadSchema.parse(args)));
+        return ok(await uploadAudienceFromCsv(liads.client, liads.getToken, AudienceUploadSchema.parse(args)));
       } catch (e) {
         return fail(e);
       }

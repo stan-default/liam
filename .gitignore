@@ -9,3 +9,4 @@ dist/
 .liads/
 *.log
 .DS_Store
+.vercel
