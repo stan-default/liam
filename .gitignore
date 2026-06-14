@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.next/
+.vercel/
+*.tsbuildinfo
+.env
+.env.*
+# Local OAuth tokens / app credentials live in ~/.liads, never in repo
+.liads/
+*.log
+.DS_Store

@@ -1,0 +1,24 @@
+{
+  "accountId": "REPLACE_WITH_AD_ACCOUNT_ID",
+  "campaignGroupName": "Q3 ABM — Enterprise",
+  "campaignName": "Enterprise target accounts — feed",
+  "audience": {
+    "name": "Q3 target accounts",
+    "csvPath": "./examples/contacts.csv",
+    "emailColumn": "email"
+  },
+  "dailyBudget": { "amount": "100.00", "currencyCode": "USD" },
+  "bid": { "amount": "30.00", "currencyCode": "USD" },
+  "type": "SPONSORED_UPDATES",
+  "runSchedule": { "start": 1751328000000 },
+  "geoUrns": ["urn:li:geo:103644278"],
+  "creatives": [
+    {
+      "organizationUrn": "urn:li:organization:REPLACE_WITH_ORG_ID",
+      "commentary": "The fastest way to put your GTM data to work. See how teams automate routing, enrichment, and outbound in one place.",
+      "headline": "Automate your go-to-market motion",
+      "clickUri": "https://www.default.com",
+      "status": "DRAFT"
+    }
+  ]
+}
