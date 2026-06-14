@@ -37,3 +37,18 @@ export async function getCampaignGroup(client: LinkedInClient, accountId: string
   });
   return res.data;
 }
+
+/** Change a campaign group's status (e.g. archive cleanup). */
+export async function setCampaignGroupStatus(
+  client: LinkedInClient,
+  accountId: string,
+  groupId: string,
+  status: "ACTIVE" | "PAUSED" | "DRAFT" | "ARCHIVED",
+): Promise<void> {
+  await client.request({
+    method: "POST",
+    path: `/adAccounts/${accountId}/adCampaignGroups/${groupId}`,
+    headers: { "X-RestLi-Method": "PARTIAL_UPDATE" },
+    body: { patch: { $set: { status } } },
+  });
+}

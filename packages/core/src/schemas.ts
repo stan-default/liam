@@ -48,6 +48,10 @@ export const CampaignInputSchema = z.object({
   targetingCriteria: z.record(z.any()).optional(),
   audienceSegmentUrn: z.string().optional().describe("urn:li:adSegment:... to target a matched audience"),
   geoUrns: z.array(z.string()).optional().describe("urn:li:geo:... locations to include"),
+  /** LinkedIn Audience Network (off-LinkedIn) delivery. Required by the API; defaults off. */
+  offsiteDeliveryEnabled: z.boolean().default(false),
+  /** Political-ad self-declaration, mandatory for EU targeting. Defaults to not political. */
+  politicalIntent: z.enum(["NOT_POLITICAL", "POLITICAL", "NOT_DECLARED"]).default("NOT_POLITICAL"),
 });
 export type CampaignInput = z.infer<typeof CampaignInputSchema>;
 

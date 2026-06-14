@@ -8,6 +8,7 @@ import {
   uploadAudienceFromCsv,
   getDmpSegment,
   launchFromBrief,
+  requireDefaultAccountId,
 } from "@liads/core";
 
 const program = new Command();
@@ -49,14 +50,14 @@ const audience = program.command("audience").description("Matched audiences");
 audience
   .command("upload")
   .description("Upload a CSV of emails as a DMP segment")
-  .requiredOption("-a, --account <id>", "Ad account id")
+  .option("-a, --account <id>", "Ad account id (defaults to config defaultAccountId)")
   .requiredOption("-n, --name <name>", "Audience name")
   .requiredOption("-f, --csv <path>", "CSV file path")
   .option("-c, --email-column <col>", "Email column header", "email")
   .action(async (opts) => {
     const liads = await createLiads();
     const res = await uploadAudienceFromCsv(liads.client, {
-      accountId: opts.account,
+      accountId: opts.account ?? (await requireDefaultAccountId()),
       name: opts.name,
       csvPath: opts.csv,
       emailColumn: opts.emailColumn,
@@ -82,6 +83,7 @@ program
   .action(async (opts) => {
     const { readFile } = await import("node:fs/promises");
     const input = JSON.parse(await readFile(opts.brief, "utf8"));
+    if (!input.accountId) input.accountId = await requireDefaultAccountId();
     const liads = await createLiads();
     const res = await launchFromBrief(liads, input);
     console.log("Created (all DRAFT):");

@@ -50,12 +50,12 @@ export async function launchFromBrief(
     }
   }
 
-  // 2. Campaign group (DRAFT).
+  // 2. Campaign group (DRAFT). runSchedule is required even for drafts.
   const group = await createCampaignGroup(client, {
     accountId: input.accountId,
     name: input.campaignGroupName,
     status: "DRAFT",
-    totalBudget: undefined,
+    runSchedule: input.runSchedule,
   });
 
   // 3. Campaign (DRAFT) — targeting, budget, bid live here.
@@ -72,6 +72,8 @@ export async function launchFromBrief(
     status: "DRAFT",
     geoUrns: input.geoUrns,
     audienceSegmentUrn,
+    offsiteDeliveryEnabled: false,
+    politicalIntent: "NOT_POLITICAL",
   });
 
   // 4. Draft creatives.

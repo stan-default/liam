@@ -18,6 +18,8 @@ export interface AppConfig {
   clientSecret: string;
   /** YYYYMM. Falls back to DEFAULT_LINKEDIN_VERSION. */
   linkedinVersion?: string;
+  /** Numeric ad account id used when a command/brief omits one. */
+  defaultAccountId?: string;
 }
 
 export interface StoredCredentials {
@@ -40,6 +42,7 @@ export async function loadConfig(): Promise<AppConfig> {
       clientId: process.env.LIADS_CLIENT_ID,
       clientSecret: process.env.LIADS_CLIENT_SECRET,
       linkedinVersion: process.env.LIADS_LINKEDIN_VERSION,
+      defaultAccountId: process.env.LIADS_DEFAULT_ACCOUNT_ID,
     };
   }
   let raw: string;
@@ -59,6 +62,15 @@ export async function loadConfig(): Promise<AppConfig> {
 
 export function linkedinVersion(config: AppConfig): string {
   return config.linkedinVersion ?? DEFAULT_LINKEDIN_VERSION;
+}
+
+/** Resolves the default ad account id from config, or throws if none is set. */
+export async function requireDefaultAccountId(): Promise<string> {
+  const { defaultAccountId } = await loadConfig();
+  if (!defaultAccountId) {
+    throw new Error("No account id provided and no defaultAccountId in config.");
+  }
+  return defaultAccountId;
 }
 
 /**

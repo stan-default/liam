@@ -27,6 +27,8 @@ export async function createCampaign(
     runSchedule: input.runSchedule,
     status: input.status,
     targetingCriteria,
+    offsiteDeliveryEnabled: input.offsiteDeliveryEnabled ?? false,
+    politicalIntent: input.politicalIntent ?? "NOT_POLITICAL",
   };
   if (input.dailyBudget) body.dailyBudget = input.dailyBudget;
   if (input.totalBudget) body.totalBudget = input.totalBudget;
@@ -44,4 +46,19 @@ export async function createCampaign(
 export async function getCampaign(client: LinkedInClient, accountId: string, campaignId: string) {
   const res = await client.request({ path: `/adAccounts/${accountId}/adCampaigns/${campaignId}` });
   return res.data;
+}
+
+/** Change a campaign's status (e.g. archive cleanup). */
+export async function setCampaignStatus(
+  client: LinkedInClient,
+  accountId: string,
+  campaignId: string,
+  status: "ACTIVE" | "PAUSED" | "DRAFT" | "ARCHIVED",
+): Promise<void> {
+  await client.request({
+    method: "POST",
+    path: `/adAccounts/${accountId}/adCampaigns/${campaignId}`,
+    headers: { "X-RestLi-Method": "PARTIAL_UPDATE" },
+    body: { patch: { $set: { status } } },
+  });
 }
