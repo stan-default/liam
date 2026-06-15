@@ -6,6 +6,8 @@ import { createCampaign } from "./resources/campaigns.js";
 import { createTextAdCreative } from "./resources/creatives.js";
 import { createSponsoredImageDraft } from "./creative.js";
 import { estimateAudience, MIN_AUDIENCE_TO_SERVE, geoSegmentSpec, type TargetingSpec } from "./resources/targeting.js";
+import { resolveConversionIdByName } from "./resources/conversions.js";
+import { loadConfig } from "./config.js";
 import { campaignManagerGroupLink, campaignManagerCampaignLink } from "./urns.js";
 
 export interface LaunchResult {
@@ -57,6 +59,17 @@ export async function launchFromBrief(
     // Estimate is best-effort; don't block the launch on it.
   }
 
+  // Resolve the conversion to track: explicit ids, else a name, else the config default.
+  let conversionIds = input.conversionIds ?? [];
+  if (conversionIds.length === 0) {
+    const name = input.conversionName ?? (await loadConfig()).defaultConversionName;
+    if (name) {
+      const id = await resolveConversionIdByName(client, input.accountId, name);
+      if (id) conversionIds = [id];
+      else warnings.push(`Conversion "${name}" not found in this account; campaign created without it.`);
+    }
+  }
+
   // 2. Campaign group (DRAFT). runSchedule is required even for drafts.
   const group = await createCampaignGroup(client, {
     accountId: input.accountId,
@@ -80,7 +93,9 @@ export async function launchFromBrief(
     targeting: spec,
     offsiteDeliveryEnabled: false,
     politicalIntent: "NOT_POLITICAL",
+    conversionIds,
   });
+  if (conversionIds.length) warnings.push(`Tracking ${conversionIds.length} conversion(s) on the campaign.`);
 
   // 4. Draft creatives.
   const creativeIds: string[] = [];

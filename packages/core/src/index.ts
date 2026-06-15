@@ -16,6 +16,7 @@ export * from "./resources/targeting.js";
 export * from "./resources/creatives.js";
 export * from "./resources/images.js";
 export * from "./resources/dmpSegments.js";
+export * from "./resources/conversions.js";
 
 // High-level workflows
 export * from "./audience.js";

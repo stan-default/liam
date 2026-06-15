@@ -2,6 +2,7 @@ import type { LinkedInClient } from "../http.js";
 import type { CampaignInput } from "../schemas.js";
 import { sponsoredAccountUrn, campaignGroupUrn } from "../urns.js";
 import { buildTargetingCriteria, geoSegmentSpec } from "./targeting.js";
+import { associateCampaignWithConversion } from "./conversions.js";
 import type { CreatedEntity } from "./campaignGroups.js";
 
 /**
@@ -43,6 +44,11 @@ export async function createCampaign(
     body,
   });
   if (!res.restliId) throw new Error("Campaign created but no id returned");
+
+  // Select existing conversions (e.g. an insight tag) for this campaign.
+  for (const conversionId of input.conversionIds ?? []) {
+    await associateCampaignWithConversion(client, input.accountId, conversionId, res.restliId);
+  }
   return { id: res.restliId };
 }
 

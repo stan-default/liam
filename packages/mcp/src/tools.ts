@@ -10,7 +10,11 @@ import {
   COMMON_FACETS,
   TargetingSpecSchema,
   uploadAudienceFromCsv,
+  audienceFromSalesforce,
+  listConversions,
   getDmpSegment,
+  requireDefaultAccountId,
+  SalesforceAudienceSchema,
   createCampaignGroup,
   createCampaign,
   createTextAdCreative,
@@ -108,6 +112,35 @@ export function registerTools(server: McpServer): void {
       try {
         const liads = await createLiads();
         return ok(await uploadAudienceFromCsv(liads.client, liads.getToken, AudienceUploadSchema.parse(args)));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "audience_from_salesforce",
+    "Build a matched audience from a Salesforce SOQL query that selects an email column. Closes the loop: flagged accounts/contacts -> DMP segment. Requires the local `sf` CLI to be authenticated.",
+    SalesforceAudienceSchema.shape,
+    async (args) => {
+      try {
+        const liads = await createLiads();
+        return ok(await audienceFromSalesforce(liads.client, liads.getToken, SalesforceAudienceSchema.parse(args)));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "list_conversions",
+    "List the account's existing conversions (insight tags) so you can select one to track on a campaign. Pass accountId or omit to use the default.",
+    { accountId: z.string().optional() },
+    async ({ accountId }) => {
+      try {
+        const liads = await createLiads();
+        const acct = accountId ?? (await requireDefaultAccountId());
+        return ok(await listConversions(liads.client, acct));
       } catch (e) {
         return fail(e);
       }

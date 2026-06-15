@@ -1,5 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import type { LinkedInClient, TokenProvider } from "./http.js";
+import { uploadAudienceFromEmails, type AudienceUploadResult } from "./audience.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -30,4 +32,32 @@ export async function emailsForFlaggedAccounts(flagField: string): Promise<strin
     `SELECT Email FROM Contact WHERE Account.${flagField} = true AND Email != null`,
   );
   return records.map((r) => r.Email!).filter(Boolean);
+}
+
+/** Pull emails from a SOQL result, auto-detecting the email column. */
+export async function emailsFromSoql(query: string, emailField?: string): Promise<string[]> {
+  const rows = await soql<Record<string, unknown>>(query);
+  const pick = (r: Record<string, unknown>) =>
+    (emailField ? r[emailField] : undefined) ?? r.Email ?? r.email;
+  return rows.map(pick).filter((e): e is string => typeof e === "string" && e.length > 0);
+}
+
+/**
+ * Closes the loop: a Salesforce SOQL query (selecting an email column) becomes a
+ * LinkedIn matched-audience DMP segment. The SOQL should return an `Email` field,
+ * e.g. `SELECT Email FROM Contact WHERE Account.Target_List__c = true AND Email != null`.
+ */
+export async function audienceFromSalesforce(
+  client: LinkedInClient,
+  getToken: TokenProvider,
+  input: { accountId: string; name: string; soql: string; emailField?: string },
+): Promise<AudienceUploadResult & { fetchedFromSalesforce: number }> {
+  const emails = await emailsFromSoql(input.soql, input.emailField);
+  if (emails.length === 0) throw new Error("Salesforce query returned no emails.");
+  const result = await uploadAudienceFromEmails(client, getToken, {
+    accountId: input.accountId,
+    name: input.name,
+    emails,
+  });
+  return { ...result, fetchedFromSalesforce: emails.length };
 }

@@ -20,6 +20,20 @@ export function hashEmail(email: string): string {
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/** Validate, normalize, SHA256-hash, and dedupe a list of raw emails. */
+export function hashAndDedupeEmails(emails: string[]): { hashes: string[]; total: number; skipped: number } {
+  const seen = new Set<string>();
+  let skipped = 0;
+  for (const email of emails) {
+    if (!email || !EMAIL_RE.test(email)) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(hashEmail(email));
+  }
+  return { hashes: [...seen], total: emails.length, skipped };
+}
+
 /** Reads a CSV and returns hashed emails from the given column, deduped. */
 export async function hashEmailsFromCsv(
   csvPath: string,
@@ -27,18 +41,7 @@ export async function hashEmailsFromCsv(
 ): Promise<{ hashes: string[]; total: number; skipped: number }> {
   const content = await readFile(csvPath, "utf8");
   const rows = parse(content, { columns: true, skip_empty_lines: true, trim: true }) as Record<string, string>[];
-
-  const seen = new Set<string>();
-  let skipped = 0;
-  for (const row of rows) {
-    const email = row[emailColumn];
-    if (!email || !EMAIL_RE.test(email)) {
-      skipped += 1;
-      continue;
-    }
-    seen.add(hashEmail(email));
-  }
-  return { hashes: [...seen], total: rows.length, skipped };
+  return hashAndDedupeEmails(rows.map((r) => r[emailColumn] ?? ""));
 }
 
 export interface AudienceUploadResult {
@@ -64,10 +67,30 @@ export async function uploadAudienceFromCsv(
   input: AudienceUploadInput,
 ): Promise<AudienceUploadResult> {
   const { hashes, total, skipped } = await hashEmailsFromCsv(input.csvPath, input.emailColumn);
+  return uploadHashedAudience(client, getToken, { accountId: input.accountId, name: input.name, hashes, total, skipped });
+}
+
+/** Upload a matched audience from a list of raw emails (e.g. from Salesforce). */
+export async function uploadAudienceFromEmails(
+  client: LinkedInClient,
+  getToken: TokenProvider,
+  input: { accountId: string; name: string; emails: string[] },
+): Promise<AudienceUploadResult> {
+  const { hashes, total, skipped } = hashAndDedupeEmails(input.emails);
+  return uploadHashedAudience(client, getToken, { accountId: input.accountId, name: input.name, hashes, total, skipped });
+}
+
+/** Shared core: validate sizes, build the hashed CSV, run the DMP list-upload flow. */
+async function uploadHashedAudience(
+  client: LinkedInClient,
+  getToken: TokenProvider,
+  input: { accountId: string; name: string; hashes: string[]; total: number; skipped: number },
+): Promise<AudienceUploadResult> {
+  const { hashes, total, skipped } = input;
   const warnings: string[] = [];
 
   if (hashes.length === 0) {
-    throw new Error(`No valid emails found in column "${input.emailColumn}" of ${input.csvPath}`);
+    throw new Error("No valid emails to upload.");
   }
   if (hashes.length > MAX_SEGMENT_ROWS) {
     throw new Error(`List has ${hashes.length} emails; LinkedIn caps a single upload at ${MAX_SEGMENT_ROWS}.`);

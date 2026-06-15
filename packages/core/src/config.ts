@@ -20,6 +20,8 @@ export interface AppConfig {
   linkedinVersion?: string;
   /** Numeric ad account id used when a command/brief omits one. */
   defaultAccountId?: string;
+  /** Conversion name auto-selected for new campaigns when none is specified. */
+  defaultConversionName?: string;
 }
 
 export interface StoredCredentials {
