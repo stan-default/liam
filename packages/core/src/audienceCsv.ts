@@ -9,7 +9,8 @@ import { parse } from "csv-parse/sync";
  *  - contact (USER_LIST_UPLOAD): matched by email. Kept column: `email`.
  *  - company (COMPANY_LIST_UPLOAD): matched by website. Kept columns:
  *    `companyname`, `companywebsite` (full https:// URL, since LinkedIn matches
- *    accounts on the website URL).
+ *    accounts on the website URL), and `linkedincompanypageurl` (the LinkedIn
+ *    company page URL, the strongest company matcher) when present.
  */
 
 export type AudienceType = "contact" | "company";
@@ -20,11 +21,17 @@ const EMAIL_KEYS = new Set(
   ["email", "emailaddress", "emailaddr", "mail", "workemail", "useremail", "primaryemail", "emailaddress1"],
 );
 const COMPANY_NAME_KEYS = new Set(
-  ["companyname", "company", "accountname", "account", "organization", "organisation", "companylegalname", "name"],
+  ["companyname", "company", "accountname", "account", "organization", "organisation", "companylegalname", "name",
+   "enrichcompany", "companylegal"],
 );
 const WEBSITE_KEYS = new Set(
   ["companywebsite", "website", "websiteurl", "url", "web", "companyurl", "companywebsiteurl", "homepage",
    "domain", "companydomain", "companyemaildomain", "emaildomain", "websitedomain", "webdomain"],
+);
+const LINKEDIN_PAGE_KEYS = new Set(
+  ["linkedincompanypageurl", "linkedin", "linkedinurl", "linkedinpage", "linkedinpageurl",
+   "companylinkedin", "companylinkedinurl", "companylinkedinpage", "linkedincompanyurl",
+   "linkedincompanypage", "linkedincompany"],
 );
 
 /** Turn a domain or messy URL into a clean https:// website URL (or "" if not a domain). */
@@ -35,6 +42,19 @@ export function toWebsiteUrl(raw: string): string {
   s = s.split(/[/?#]/)[0]!.replace(/:\d+$/, "");
   if (!s.includes(".")) return "";
   return `https://${s}`;
+}
+
+/** Normalize a LinkedIn company page reference into a full https:// URL (or "" if not one). */
+export function toLinkedInUrl(raw: string): string {
+  let s = (raw ?? "").trim();
+  if (!s) return "";
+  s = s.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
+  // Accept a bare slug ("company/acme") or a full host path; drop query/hash and trailing slash.
+  s = s.split(/[?#]/)[0]!.replace(/\/+$/, "");
+  if (/^linkedin\.com\//i.test(s)) return `https://www.${s}`;
+  if (/^company\//i.test(s) || /^school\//i.test(s)) return `https://www.linkedin.com/${s}`;
+  if (!s.includes(".") && !s.includes("/")) return "";
+  return s.includes("linkedin.com") ? `https://www.${s.replace(/^.*?linkedin\.com/i, "linkedin.com")}` : "";
 }
 
 export interface CleanedCsv {
@@ -80,11 +100,17 @@ export function cleanAudienceCsv(text: string, opts: { type?: AudienceType } = {
   // company
   const nameCol = findHeader(headers, COMPANY_NAME_KEYS);
   const webCol = findHeader(headers, WEBSITE_KEYS);
-  if (!webCol && !nameCol) throw new Error("No company name or website/domain column found.");
-  if (!webCol) warnings.push("No website/domain column found; matching on company name only.");
+  const liCol = findHeader(headers, LINKEDIN_PAGE_KEYS);
+  if (!webCol && !nameCol && !liCol) throw new Error("No company name, website/domain, or LinkedIn page column found.");
+  if (!webCol && !liCol) warnings.push("No website/domain or LinkedIn page column found; matching on company name only.");
 
-  const columns = [...(nameCol ? ["companyname"] : []), ...(webCol ? ["companywebsite"] : [])];
+  const columns = [
+    ...(nameCol ? ["companyname"] : []),
+    ...(webCol ? ["companywebsite"] : []),
+    ...(liCol ? ["linkedincompanypageurl"] : []),
+  ];
   let convertedDomains = 0;
+  let blankLinkedIn = 0;
   const rows: Record<string, string>[] = [];
   for (const r of parsed) {
     const out: Record<string, string> = {};
@@ -96,11 +122,17 @@ export function cleanAudienceCsv(text: string, opts: { type?: AudienceType } = {
         if (!/^https?:\/\//i.test((r[webCol] ?? "").trim())) convertedDomains += 1;
       }
     }
-    if (out.companyname || out.companywebsite) rows.push(out);
+    if (liCol) {
+      const li = toLinkedInUrl(r[liCol] ?? "");
+      if (li) out.linkedincompanypageurl = li;
+      else if ((r[liCol] ?? "").trim()) blankLinkedIn += 1;
+    }
+    if (out.companyname || out.companywebsite || out.linkedincompanypageurl) rows.push(out);
   }
-  const dropped = headers.filter((h) => h !== nameCol && h !== webCol);
+  const dropped = headers.filter((h) => h !== nameCol && h !== webCol && h !== liCol);
   if (dropped.length) warnings.push(`Dropped ${dropped.length} non-matcher column(s): ${dropped.join(", ")}.`);
   if (convertedDomains) warnings.push(`Converted ${convertedDomains} domain(s) to https:// website URLs.`);
+  if (blankLinkedIn) warnings.push(`${blankLinkedIn} LinkedIn page value(s) were unparseable and left blank.`);
 
   return { type, columns, rows, dropped, rowCount: rows.length, warnings };
 }
