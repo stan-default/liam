@@ -96,6 +96,9 @@ export async function launchFromBrief(
     status: "DRAFT",
     targeting: spec,
     politicalIntent: "NOT_POLITICAL",
+    applyDefaultExclusions: true,
+    // Conversion is resolved above (explicit id, brief name, or config default).
+    applyDefaultConversion: false,
     conversionIds,
   });
   if (conversionIds.length) warnings.push(`Tracking ${conversionIds.length} conversion(s) on the campaign.`);

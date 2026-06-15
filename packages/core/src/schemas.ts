@@ -84,6 +84,10 @@ export const CampaignInputSchema = z.object({
   politicalIntent: z.enum(["NOT_POLITICAL", "POLITICAL", "NOT_DECLARED"]).default("NOT_POLITICAL"),
   /** Existing conversion ids to associate (select an insight-tag conversion to track). */
   conversionIds: z.array(z.string()).optional(),
+  /** Apply the standing default audience exclusions (live customers, competitors, exclude list). Set false to skip. */
+  applyDefaultExclusions: z.boolean().default(true),
+  /** When no conversionIds are given, attach the account's default conversion. Set false to skip. */
+  applyDefaultConversion: z.boolean().default(true),
 });
 export type CampaignInput = z.infer<typeof CampaignInputSchema>;
 
