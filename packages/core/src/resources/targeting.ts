@@ -42,6 +42,35 @@ export interface TargetingSpec {
 const nonEmpty = (rec?: Record<string, string[]>) =>
   Object.entries(rec ?? {}).filter(([, urns]) => urns && urns.length > 0);
 
+/**
+ * Standing default audience exclusions applied to every campaign unless turned
+ * off. Excludes live customers, competitors, and the manual exclude list so
+ * spend stays on net-new in-market accounts.
+ */
+export const DEFAULT_EXCLUSION_SEGMENT_URNS = [
+  "urn:li:adSegment:32099796", // Live Customer
+  "urn:li:adSegment:24661476", // Exclude Competitors
+  "urn:li:adSegment:31797196", // Exclude List
+];
+
+/**
+ * Merge default audience-exclusion segments into a built targetingCriteria,
+ * unioning (deduped) with any existing audienceMatchingSegments exclusions.
+ * Returns a shallow-updated copy; preserves any other exclude clauses.
+ */
+export function withDefaultExclusions(
+  criteria: Record<string, unknown>,
+  segmentUrns: string[] = DEFAULT_EXCLUSION_SEGMENT_URNS,
+): Record<string, unknown> {
+  if (segmentUrns.length === 0) return criteria;
+  const facet = facetUrn("audienceMatchingSegments");
+  const exclude = (criteria.exclude as { or?: Record<string, string[]> } | undefined) ?? {};
+  const or = { ...(exclude.or ?? {}) };
+  const existing = Array.isArray(or[facet]) ? or[facet] : [];
+  or[facet] = Array.from(new Set([...existing, ...segmentUrns]));
+  return { ...criteria, exclude: { ...exclude, or } };
+}
+
 /** Builds the targetingCriteria object for campaign create/update from a spec. */
 export function buildTargetingCriteria(spec: TargetingSpec): Record<string, unknown> {
   const and = nonEmpty(spec.include).map(([name, urns]) => ({ or: { [facetUrn(name)]: urns } }));
