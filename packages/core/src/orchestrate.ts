@@ -95,7 +95,6 @@ export async function launchFromBrief(
     runSchedule: input.runSchedule,
     status: "DRAFT",
     targeting: spec,
-    offsiteDeliveryEnabled: false,
     politicalIntent: "NOT_POLITICAL",
     conversionIds,
   });
