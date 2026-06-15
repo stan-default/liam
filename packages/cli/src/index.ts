@@ -11,6 +11,8 @@ import {
   requireDefaultAccountId,
   searchTargeting,
   estimateAudience,
+  audienceFromSalesforce,
+  listConversions,
 } from "@liads/core";
 
 const program = new Command();
@@ -70,6 +72,26 @@ audience
   });
 
 audience
+  .command("from-salesforce")
+  .description("Build a matched audience from a Salesforce SOQL query")
+  .requiredOption("-n, --name <name>", "Audience name")
+  .requiredOption("-q, --soql <query>", "SOQL selecting an email column")
+  .option("-a, --account <id>", "Ad account id (defaults to config defaultAccountId)")
+  .option("--email-field <col>", "Email column name if not 'Email'")
+  .action(async (opts) => {
+    const liads = await createLiads();
+    const res = await audienceFromSalesforce(liads.client, liads.getToken, {
+      accountId: opts.account ?? (await requireDefaultAccountId()),
+      name: opts.name,
+      soql: opts.soql,
+      emailField: opts.emailField,
+    });
+    console.log(`Fetched ${res.fetchedFromSalesforce} emails from Salesforce.`);
+    console.log(`Segment ${res.segmentId} — status ${res.status} (${res.uploaded} uploaded).`);
+    res.warnings.forEach((w: string) => console.warn(`! ${w}`));
+  });
+
+audience
   .command("status <segmentId>")
   .description("Check a DMP segment's matching status")
   .action(async (segmentId: string) => {
@@ -94,6 +116,18 @@ targeting
     const liads = await createLiads();
     const est = await estimateAudience(liads.client, { include: { [facet]: urns } });
     console.log(`total ${est.total} | active ${est.active} | canServe ${est.canServe}`);
+  });
+
+const conversions = program.command("conversions").description("Conversions (insight tags)");
+conversions
+  .command("list")
+  .description("List the account's conversions to select one for a campaign")
+  .option("-a, --account <id>", "Ad account id (defaults to config defaultAccountId)")
+  .action(async (opts) => {
+    const liads = await createLiads();
+    const acct = opts.account ?? (await requireDefaultAccountId());
+    const list = await listConversions(liads.client, acct);
+    for (const c of list) console.log(`${c.id}\t${c.enabled ? "on " : "off"}\t${c.type}\t${c.name}`);
   });
 
 program

@@ -66,6 +66,8 @@ export const CampaignInputSchema = z.object({
   offsiteDeliveryEnabled: z.boolean().default(false),
   /** Political-ad self-declaration, mandatory for EU targeting. Defaults to not political. */
   politicalIntent: z.enum(["NOT_POLITICAL", "POLITICAL", "NOT_DECLARED"]).default("NOT_POLITICAL"),
+  /** Existing conversion ids to associate (select an insight-tag conversion to track). */
+  conversionIds: z.array(z.string()).optional(),
 });
 export type CampaignInput = z.infer<typeof CampaignInputSchema>;
 
@@ -102,6 +104,14 @@ export const AudienceUploadSchema = z.object({
 });
 export type AudienceUploadInput = z.infer<typeof AudienceUploadSchema>;
 
+export const SalesforceAudienceSchema = z.object({
+  accountId: z.string(),
+  name: z.string().min(1).describe("Audience/segment name"),
+  soql: z.string().describe("SOQL selecting an email column, e.g. SELECT Email FROM Contact WHERE ..."),
+  emailField: z.string().optional().describe("Email column name if not 'Email'"),
+});
+export type SalesforceAudienceInput = z.infer<typeof SalesforceAudienceSchema>;
+
 export const LaunchFromBriefSchema = z.object({
   accountId: z.string(),
   campaignGroupName: z.string(),
@@ -114,6 +124,10 @@ export const LaunchFromBriefSchema = z.object({
   geoUrns: z.array(z.string()).default(["urn:li:geo:103644278"]).describe("Defaults to United States"),
   /** Optional structured targeting (titles, seniority, industry, etc.) merged with geo. */
   targeting: TargetingSpecSchema.optional(),
+  /** Existing conversion ids to associate with the campaign. */
+  conversionIds: z.array(z.string()).optional(),
+  /** Or select an existing conversion by name (resolved to its id). */
+  conversionName: z.string().optional().describe("e.g. 'Default Meeting Booked - Insight Tag'"),
   creatives: z.array(z.union([TextAdCreativeSchema.omit({ accountId: true, campaignId: true }), SponsoredImageCreativeSchema.omit({ accountId: true, campaignId: true })])).optional(),
 });
 export type LaunchFromBriefInput = z.infer<typeof LaunchFromBriefSchema>;

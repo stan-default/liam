@@ -8,8 +8,8 @@ Manager.
 
 > Unofficial and not affiliated with or endorsed by LinkedIn.
 
-> Optimization features (performance insights, Salesforce cross-reference) are on the
-> roadmap. This release covers creation.
+> Performance-insight reporting is on the roadmap. This release covers creation, matched
+> audiences (including building one straight from Salesforce), and conversion selection.
 
 ## Hierarchy mapping (LinkedIn differs from Google/Meta)
 
@@ -81,7 +81,11 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
   `list_facet_entities`, `estimate_audience` (structured spec). Talk in plain language
   ("VPs of demand gen at SaaS companies in the US") and Liam resolves the facets, estimates
   reach, then builds the campaign.
-- **Audiences:** `upload_audience_csv`, `get_audience_status`
+- **Audiences:** `upload_audience_csv`, `audience_from_salesforce` (SOQL → matched audience),
+  `get_audience_status`
+- **Conversions:** `list_conversions` (select an existing insight-tag conversion to track).
+  `create_campaign` and `launch_from_brief` accept `conversionIds` or `conversionName`, and
+  fall back to `defaultConversionName` from config.
 - **Campaigns:** `create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`
 - **Orchestrator:** `launch_from_brief` (audience + group + campaign + draft creatives in one call)
 
@@ -106,7 +110,9 @@ liam accounts list                      # list accessible ad accounts
 liam targeting search <facet> <query>   # typeahead a facet for entity URNs
 liam targeting estimate <facet> <urns…> # audience size for one facet's URNs
 liam audience upload -n <name> -f <csv> # CSV of emails -> matched-audience segment
+liam audience from-salesforce -n <name> -q "<SOQL>"   # Salesforce query -> matched audience
 liam audience status <segmentId>        # matching status + resolved size
+liam conversions list                   # account conversions (pick one to track)
 liam launch --brief <brief.json>        # audience + group + campaign + draft creatives
 ```
 
@@ -126,6 +132,19 @@ Local config lives in `~/.liads/config.json` (mode 0600, never in the repo):
 
 Hosted equivalents are the `LIADS_*` env vars plus `MCP_AUTH_TOKEN` (see `.env.example`).
 OAuth tokens are stored separately in `~/.liads/credentials.json`.
+
+## Salesforce integration
+
+Liam reads Salesforce by shelling out to the authenticated `sf` CLI (`sf data query`), so it
+reuses your existing login and needs no new credentials. `audience_from_salesforce` (and
+`liam audience from-salesforce`) take a SOQL query that selects an email column and turn the
+result into a matched audience, closing the loop from "accounts flagged in Salesforce" to
+"LinkedIn targeting." Example:
+
+```
+liam audience from-salesforce -n "Q3 target accounts" \
+  -q "SELECT Email FROM Contact WHERE Account.Target_List__c = true AND Email != null"
+```
 
 ## Safety
 

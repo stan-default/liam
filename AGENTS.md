@@ -84,4 +84,5 @@ change by initializing the MCP endpoint and listing tools (see README).
 ## Salesforce
 
 `core/src/salesforce.ts` shells out to the authenticated `sf` CLI (`sf data query --json`).
-No new credentials; reuses the user's existing `sf` login. Read-only.
+No new credentials; reuses the user's existing `sf` login. Read-only. `audienceFromSalesforce`
+turns a SOQL email query into a matched-audience DMP segment (reuses `uploadAudienceFromEmails`).
