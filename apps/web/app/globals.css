@@ -101,22 +101,6 @@ body::after {
   padding: clamp(48px, 11vh, 120px) 0 48px;
   flex: 1;
 }
-.eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 22px;
-}
-.eyebrow::before {
-  content: "";
-  width: 34px;
-  height: 1px;
-  background: var(--amber);
-}
 .wordmark {
   font-family: var(--font-display), sans-serif;
   font-weight: 900;
@@ -152,54 +136,9 @@ body::after {
   color: var(--amber);
 }
 
-/* readout panel */
-.panel {
-  position: relative;
-  margin-top: 44px;
-  border: 1px solid var(--amber-dim);
-  background: linear-gradient(180deg, var(--panel), #0d0d0c);
-}
-.panel-head {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--amber-dim);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.spec {
-  padding: 6px 18px 14px;
-}
-.row {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 16px;
-  padding: 13px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
-  font-size: 14px;
-}
-.row:last-child {
-  border-bottom: none;
-}
-.row .k {
-  color: var(--faint);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 12px;
-  align-self: center;
-}
-.row .v {
-  color: var(--ink);
-}
-.row .v .amber {
-  color: var(--amber);
-}
-
 /* connect */
 .connect {
-  margin-top: 36px;
+  margin-top: 48px;
 }
 .connect .label {
   font-size: 11px;
@@ -276,7 +215,6 @@ body::after {
 }
 
 @media (max-width: 560px) {
-  .row { grid-template-columns: 1fr; gap: 4px; }
   .topbar { font-size: 10px; letter-spacing: 0.12em; }
 }
 
