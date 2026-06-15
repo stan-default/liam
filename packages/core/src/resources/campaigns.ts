@@ -1,8 +1,9 @@
 import type { LinkedInClient } from "../http.js";
 import type { CampaignInput } from "../schemas.js";
 import { sponsoredAccountUrn, campaignGroupUrn } from "../urns.js";
-import { buildTargetingCriteria, geoSegmentSpec } from "./targeting.js";
-import { associateCampaignWithConversion } from "./conversions.js";
+import { buildTargetingCriteria, geoSegmentSpec, withDefaultExclusions } from "./targeting.js";
+import { associateCampaignWithConversion, resolveConversionIdByName } from "./conversions.js";
+import { loadConfig } from "../config.js";
 import type { CreatedEntity } from "./campaignGroups.js";
 
 /**
@@ -15,11 +16,14 @@ export async function createCampaign(
   input: CampaignInput,
 ): Promise<CreatedEntity> {
   // Targeting precedence: explicit raw criteria > structured spec > geo/segment shorthand.
-  const targetingCriteria =
+  const baseCriteria =
     input.targetingCriteria ??
     buildTargetingCriteria(
       input.targeting ?? geoSegmentSpec(input.geoUrns, input.audienceSegmentUrn),
     );
+  // Standing rule: apply default audience exclusions unless explicitly opted out.
+  const targetingCriteria =
+    (input.applyDefaultExclusions ?? true) ? withDefaultExclusions(baseCriteria) : baseCriteria;
 
   const body: Record<string, unknown> = {
     account: sponsoredAccountUrn(input.accountId),
@@ -50,8 +54,18 @@ export async function createCampaign(
   });
   if (!res.restliId) throw new Error("Campaign created but no id returned");
 
+  // Conversions: use explicit ids if given, otherwise fall back to the account's
+  // default conversion (config.defaultConversionName) unless opted out.
+  let conversionIds = input.conversionIds ?? [];
+  if (conversionIds.length === 0 && (input.applyDefaultConversion ?? true)) {
+    const name = (await loadConfig()).defaultConversionName;
+    if (name) {
+      const id = await resolveConversionIdByName(client, input.accountId, name);
+      if (id) conversionIds = [id];
+    }
+  }
   // Select existing conversions (e.g. an insight tag) for this campaign.
-  for (const conversionId of input.conversionIds ?? []) {
+  for (const conversionId of conversionIds) {
     await associateCampaignWithConversion(client, input.accountId, conversionId, res.restliId);
   }
   return { id: res.restliId };
