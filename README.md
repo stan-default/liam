@@ -82,8 +82,9 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
   `list_facet_entities`, `estimate_audience` (structured spec). Talk in plain language
   ("VPs of demand gen at SaaS companies in the US") and Liam resolves the facets, estimates
   reach, then builds the campaign.
-- **Audiences:** `upload_audience_csv`, `audience_from_salesforce` (SOQL → matched audience),
-  `get_audience_status`
+- **Audiences:** `upload_audience_csv` (auto-cleans the CSV: normalizes column names, drops
+  non-matcher columns, hashes emails, converts company domains to website URLs; supports both
+  contact and company lists), `audience_from_salesforce` (SOQL → matched audience), `get_audience_status`
 - **Conversions:** `list_conversions` (select an existing insight-tag conversion to track).
   `create_campaign` and `launch_from_brief` accept `conversionIds` or `conversionName`, and
   fall back to `defaultConversionName` from config.
@@ -113,7 +114,8 @@ liam auth export                        # print env vars for the hosted (Vercel)
 liam accounts list                      # list accessible ad accounts
 liam targeting search <facet> <query>   # typeahead a facet for entity URNs
 liam targeting estimate <facet> <urns…> # audience size for one facet's URNs
-liam audience upload -n <name> -f <csv> # CSV of emails -> matched-audience segment
+liam audience upload -n <name> -f <csv> # clean + upload a CSV as a matched audience
+liam audience upload -n <name> -f <csv> --dry-run   # preview the cleaned CSV, no upload
 liam audience from-salesforce -n <name> -q "<SOQL>"   # Salesforce query -> matched audience
 liam audience status <segmentId>        # matching status + resolved size
 liam conversions list                   # account conversions (pick one to track)

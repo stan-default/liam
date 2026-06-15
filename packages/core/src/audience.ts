@@ -11,7 +11,9 @@ import {
   deleteDmpSegment,
   MAX_SEGMENT_ROWS,
   RECOMMENDED_MIN_ROWS,
+  type SegmentType,
 } from "./resources/dmpSegments.js";
+import { cleanAudienceCsv, cleanedToCsv, type AudienceType } from "./audienceCsv.js";
 
 /** Normalize (trim + lowercase) and SHA256-hash an email, per LinkedIn's spec. */
 export function hashEmail(email: string): string {
@@ -80,18 +82,63 @@ export async function uploadAudienceFromEmails(
   return uploadHashedAudience(client, getToken, { accountId: input.accountId, name: input.name, hashes, total, skipped });
 }
 
-/** Shared core: validate sizes, build the hashed CSV, run the DMP list-upload flow. */
+/** Upload a CSV (contact or company) to LinkedIn as a matched-audience segment. */
+async function uploadCsvToSegment(
+  client: LinkedInClient,
+  getToken: TokenProvider,
+  input: {
+    accountId: string;
+    name: string;
+    csvText: string;
+    type: SegmentType;
+    uploaded: number;
+    totalRows: number;
+    skipped: number;
+    warnings: string[];
+  },
+): Promise<AudienceUploadResult> {
+  const token = await getToken();
+  const uploadUrl = await generateUploadUrl(client, input.accountId);
+  const mediaUrn = await uploadListCsv(uploadUrl, input.csvText, token);
+  const segment = await createListUploadSegment(client, { accountId: input.accountId, name: input.name, type: input.type });
+
+  // The new segment isn't immediately attachable; LinkedIn suggests ~5s but it
+  // can lag with a 404. Retry on not-found; fail fast on real rejections.
+  await sleep(5000);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await attachListToSegment(client, segment.id, mediaUrn);
+      break;
+    } catch (err) {
+      if ((err as { status?: number }).status === 404 && attempt < 4) {
+        await sleep(3000);
+        continue;
+      }
+      await deleteDmpSegment(client, segment.id).catch(() => {});
+      throw err;
+    }
+  }
+
+  return {
+    segmentId: segment.id,
+    uploaded: input.uploaded,
+    totalRows: input.totalRows,
+    skipped: input.skipped,
+    status: "PROCESSING",
+    warnings: [...input.warnings, "Segment is matching (up to 48h). Poll get_audience_status; target it once READY."],
+  };
+}
+
+/** Shared core for email/contact uploads: validate sizes, hash, upload. */
 async function uploadHashedAudience(
   client: LinkedInClient,
   getToken: TokenProvider,
-  input: { accountId: string; name: string; hashes: string[]; total: number; skipped: number },
+  input: { accountId: string; name: string; hashes: string[]; total: number; skipped: number; preWarnings?: string[] },
 ): Promise<AudienceUploadResult> {
   const { hashes, total, skipped } = input;
-  const warnings: string[] = [];
+  const warnings = [...(input.preWarnings ?? [])];
 
-  if (hashes.length === 0) {
-    throw new Error("No valid emails to upload.");
-  }
+  if (hashes.length === 0) throw new Error("No valid emails to upload.");
   if (hashes.length > MAX_SEGMENT_ROWS) {
     throw new Error(`List has ${hashes.length} emails; LinkedIn caps a single upload at ${MAX_SEGMENT_ROWS}.`);
   }
@@ -102,23 +149,62 @@ async function uploadHashedAudience(
   }
   if (skipped > 0) warnings.push(`Skipped ${skipped} rows with missing/invalid emails.`);
 
-  // Build the hashed-email CSV LinkedIn expects (single `email` column of hashes).
-  const csv = `email\n${hashes.join("\n")}\n`;
+  return uploadCsvToSegment(client, getToken, {
+    accountId: input.accountId,
+    name: input.name,
+    csvText: `email\n${hashes.join("\n")}\n`,
+    type: "USER_LIST_UPLOAD",
+    uploaded: hashes.length,
+    totalRows: total,
+    skipped,
+    warnings,
+  });
+}
 
-  const token = await getToken();
-  const uploadUrl = await generateUploadUrl(client, input.accountId);
-  const mediaUrn = await uploadListCsv(uploadUrl, csv, token);
-  const segment = await createListUploadSegment(client, { accountId: input.accountId, name: input.name });
-  await sleep(5000); // LinkedIn requires ~5s before a segment can accept a list.
-  try {
-    await attachListToSegment(client, segment.id, mediaUrn);
-  } catch (err) {
-    // Don't leave an empty orphan segment behind if the list is rejected.
-    await deleteDmpSegment(client, segment.id).catch(() => {});
-    throw err;
+/** Min recommended rows for a company list (contacts use RECOMMENDED_MIN_ROWS). */
+const RECOMMENDED_MIN_COMPANIES = 1000;
+
+/**
+ * Clean a CSV (fix column names, drop non-matcher columns, turn domains into
+ * website URLs) and upload it as the right list type (auto-detected, or forced
+ * via `type`). Contacts are hashed; companies upload name + website.
+ */
+export async function uploadAudienceFromFile(
+  client: LinkedInClient,
+  getToken: TokenProvider,
+  input: { accountId: string; name: string; csvPath: string; type?: AudienceType },
+): Promise<AudienceUploadResult & { audienceType: AudienceType }> {
+  const text = await readFile(input.csvPath, "utf8");
+  const clean = cleanAudienceCsv(text, { type: input.type });
+  if (clean.rowCount === 0) throw new Error("No usable rows after cleaning the CSV.");
+
+  if (clean.type === "contact") {
+    const { hashes, total, skipped } = hashAndDedupeEmails(clean.rows.map((r) => r.email ?? ""));
+    const res = await uploadHashedAudience(client, getToken, {
+      accountId: input.accountId,
+      name: input.name,
+      hashes,
+      total,
+      skipped,
+      preWarnings: clean.warnings,
+    });
+    return { ...res, audienceType: "contact" };
   }
 
-  warnings.push("Segment is matching (up to 48h). Poll get_audience_status; target it once READY.");
-
-  return { segmentId: segment.id, uploaded: hashes.length, totalRows: total, skipped, status: "PROCESSING", warnings };
+  // company
+  const warnings = [...clean.warnings];
+  if (clean.rowCount < RECOMMENDED_MIN_COMPANIES) {
+    warnings.push(`Only ${clean.rowCount} companies. LinkedIn recommends >= ${RECOMMENDED_MIN_COMPANIES}.`);
+  }
+  const res = await uploadCsvToSegment(client, getToken, {
+    accountId: input.accountId,
+    name: input.name,
+    csvText: cleanedToCsv(clean),
+    type: "COMPANY_LIST_UPLOAD",
+    uploaded: clean.rowCount,
+    totalRows: clean.rowCount,
+    skipped: 0,
+    warnings,
+  });
+  return { ...res, audienceType: "company" };
 }

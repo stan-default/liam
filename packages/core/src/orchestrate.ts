@@ -1,6 +1,6 @@
 import type { Liads } from "./client.js";
 import type { LaunchFromBriefInput } from "./schemas.js";
-import { uploadAudienceFromCsv } from "./audience.js";
+import { uploadAudienceFromFile } from "./audience.js";
 import { createCampaignGroup } from "./resources/campaignGroups.js";
 import { createCampaign } from "./resources/campaigns.js";
 import { createTextAdCreative } from "./resources/creatives.js";
@@ -36,7 +36,11 @@ export async function launchFromBrief(
   // to the campaign in this same run — we surface the segment id to attach later.
   const audienceSegmentUrn: string | undefined = undefined;
   if (input.audience) {
-    const result = await uploadAudienceFromCsv(client, getToken, { ...input.audience, accountId: input.accountId });
+    const result = await uploadAudienceFromFile(client, getToken, {
+      accountId: input.accountId,
+      name: input.audience.name,
+      csvPath: input.audience.csvPath,
+    });
     warnings.push(...result.warnings);
     warnings.push(
       `Audience "${input.audience.name}" uploaded as segment ${result.segmentId} (${result.uploaded} hashed emails). Attach its adSegment urn to this campaign once it is READY.`,
