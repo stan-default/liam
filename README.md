@@ -95,6 +95,38 @@ Structured targeting uses short facet names mapped to entity URNs (resolve URNs 
   "exclude": { "industries": ["urn:li:industry:47"] } }
 ```
 
+## CLI reference
+
+All commands also work via `node packages/cli/dist/index.js <cmd>`.
+
+```
+liam auth login                         # OAuth, stores tokens in ~/.liads
+liam auth export                        # print env vars for the hosted (Vercel) server
+liam accounts list                      # list accessible ad accounts
+liam targeting search <facet> <query>   # typeahead a facet for entity URNs
+liam targeting estimate <facet> <urns…> # audience size for one facet's URNs
+liam audience upload -n <name> -f <csv> # CSV of emails -> matched-audience segment
+liam audience status <segmentId>        # matching status + resolved size
+liam launch --brief <brief.json>        # audience + group + campaign + draft creatives
+```
+
+`--account` defaults to `defaultAccountId` from config where applicable.
+
+## Configuration
+
+Local config lives in `~/.liads/config.json` (mode 0600, never in the repo):
+
+| Field | Purpose |
+| --- | --- |
+| `clientId`, `clientSecret` | LinkedIn app credentials (or `LIADS_CLIENT_ID`/`LIADS_CLIENT_SECRET`) |
+| `linkedinVersion` | Pinned API version, e.g. `202605` |
+| `defaultAccountId` | Ad account used when a command/brief omits one |
+| `defaultConversionName` | Conversion auto-selected for new campaigns when none is given |
+| `mcpAuthToken` | Bearer secret for the hosted MCP endpoint |
+
+Hosted equivalents are the `LIADS_*` env vars plus `MCP_AUTH_TOKEN` (see `.env.example`).
+OAuth tokens are stored separately in `~/.liads/credentials.json`.
+
 ## Safety
 
 - Every campaign/creative is created **DRAFT/PAUSED**. Activation is a separate, explicit step.
