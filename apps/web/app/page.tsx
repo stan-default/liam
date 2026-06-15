@@ -10,9 +10,14 @@ export default function Home() {
         <span>
           <b>LIAM</b> · LINKEDIN AD MANAGER
         </span>
-        <span className="status">
-          <span className="dot" aria-hidden />
-          ON DUTY
+        <span className="topright">
+          <a className="navlink" href="/audience">
+            Upload audience ↗
+          </a>
+          <span className="status">
+            <span className="dot" aria-hidden />
+            ON DUTY
+          </span>
         </span>
       </header>
 

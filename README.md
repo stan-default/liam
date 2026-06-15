@@ -69,6 +69,10 @@ Register the local MCP server with Claude (Desktop / Code):
    and a strong `MCP_AUTH_TOKEN`).
 4. Your MCP endpoint is `https://<your-app>.vercel.app/api/mcp`.
 
+The hosted app also serves a web **audience upload** section at `/audience`: drop a CSV,
+enter your `MCP_AUTH_TOKEN`, and it creates a matched-audience segment. The upload endpoint
+(`/api/audience`) is gated by the same token.
+
 Connect Claude to the remote server (header carries the secret):
 
 ```bash

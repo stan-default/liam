@@ -81,6 +81,21 @@ body::after {
   color: var(--ink);
   font-weight: 600;
 }
+.topright {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+}
+.navlink {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.navlink:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+}
 .status {
   display: inline-flex;
   align-items: center;
@@ -188,6 +203,141 @@ body::after {
 .footer a:hover {
   color: var(--amber);
   border-color: var(--amber);
+}
+
+/* ---- audience upload page ---- */
+.page-narrow {
+  max-width: 720px;
+}
+.back {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.back:hover {
+  color: var(--amber);
+}
+.muted-label {
+  color: var(--faint);
+}
+.hero-narrow {
+  padding: clamp(36px, 8vh, 72px) 0 40px;
+  flex: 1;
+}
+.section-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(40px, 8vw, 72px);
+  line-height: 0.9;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 18px;
+}
+.form {
+  display: grid;
+  gap: 20px;
+  margin-top: 36px;
+}
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.field label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.input {
+  background: #060605;
+  border: 1px solid var(--amber-dim);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus {
+  border-color: var(--amber);
+}
+.input::placeholder {
+  color: var(--faint);
+}
+.filedrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--amber-dim);
+  background: #060605;
+  color: var(--muted);
+  padding: 26px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.filedrop:hover {
+  border-color: var(--amber);
+  color: var(--ink);
+}
+.filename {
+  color: var(--amber);
+}
+.submit {
+  justify-self: start;
+  background: var(--amber);
+  color: #0b0b0c;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 14px 26px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.05s;
+}
+.submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.result {
+  margin-top: 28px;
+  border: 1px solid var(--amber-dim);
+  background: var(--panel);
+  padding: 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.result.err {
+  border-color: #c2412d;
+  color: #f0b8ad;
+}
+.result .note {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+.result .warn {
+  color: var(--amber);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+@media (max-width: 560px) {
+  .row-2 { grid-template-columns: 1fr; }
 }
 
 /* staggered entrance */

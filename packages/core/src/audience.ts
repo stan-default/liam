@@ -34,6 +34,12 @@ export function hashAndDedupeEmails(emails: string[]): { hashes: string[]; total
   return { hashes: [...seen], total: emails.length, skipped };
 }
 
+/** Extract raw email values from CSV text (for in-memory uploads, e.g. the web app). */
+export function extractEmailsFromCsvText(text: string, emailColumn: string): string[] {
+  const rows = parse(text, { columns: true, skip_empty_lines: true, trim: true }) as Record<string, string>[];
+  return rows.map((r) => r[emailColumn] ?? "").filter(Boolean);
+}
+
 /** Reads a CSV and returns hashed emails from the given column, deduped. */
 export async function hashEmailsFromCsv(
   csvPath: string,
@@ -109,13 +115,24 @@ async function uploadHashedAudience(
   const uploadUrl = await generateUploadUrl(client, input.accountId);
   const mediaUrn = await uploadListCsv(uploadUrl, csv, token);
   const segment = await createListUploadSegment(client, { accountId: input.accountId, name: input.name });
-  await sleep(5000); // LinkedIn requires ~5s before a segment can accept a list.
-  try {
-    await attachListToSegment(client, segment.id, mediaUrn);
-  } catch (err) {
-    // Don't leave an empty orphan segment behind if the list is rejected.
-    await deleteDmpSegment(client, segment.id).catch(() => {});
-    throw err;
+  // The new segment isn't immediately attachable; LinkedIn suggests ~5s but it
+  // can lag, returning 404. Retry on not-found; fail fast on real rejections.
+  await sleep(5000);
+  let attached = false;
+  for (let attempt = 0; !attached; attempt++) {
+    try {
+      await attachListToSegment(client, segment.id, mediaUrn);
+      attached = true;
+    } catch (err) {
+      const notReady = (err as { status?: number }).status === 404;
+      if (notReady && attempt < 4) {
+        await sleep(3000);
+        continue;
+      }
+      // Don't leave an empty orphan segment behind if the list is rejected.
+      await deleteDmpSegment(client, segment.id).catch(() => {});
+      throw err;
+    }
   }
 
   warnings.push("Segment is matching (up to 48h). Poll get_audience_status; target it once READY.");
