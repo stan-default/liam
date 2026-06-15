@@ -22,6 +22,8 @@ export * from "./resources/conversions.js";
 export * from "./audience.js";
 export * from "./creative.js";
 export * from "./orchestrate.js";
+export * from "./resources/analytics.js";
+export * from "./report.js";
 
 // Salesforce reader (Phase 3 foundation)
 export * from "./salesforce.js";

@@ -8,8 +8,9 @@ Manager.
 
 > Unofficial and not affiliated with or endorsed by LinkedIn.
 
-> Performance-insight reporting is on the roadmap. This release covers creation, matched
-> audiences (including building one straight from Salesforce), and conversion selection.
+> Covers creation, matched audiences (including building one straight from Salesforce),
+> conversion selection, and performance reporting/insights. Salesforce↔LinkedIn outcome
+> cross-reference is next on the roadmap.
 
 ## Hierarchy mapping (LinkedIn differs from Google/Meta)
 
@@ -88,6 +89,9 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
   fall back to `defaultConversionName` from config.
 - **Campaigns:** `create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`
 - **Orchestrator:** `launch_from_brief` (audience + group + campaign + draft creatives in one call)
+- **Reporting:** `performance_summary` (account rollup + top/bottom + flags), `get_performance`
+  (per-entity KPIs at any level), `performance_trend` (weekly/monthly with deltas). KPIs: CTR,
+  CPC, CPM, CPL, conversion rate, cost per conversion. Levels: campaign_group → campaign → creative.
 
 ### Targeting spec
 
@@ -113,8 +117,13 @@ liam audience upload -n <name> -f <csv> # CSV of emails -> matched-audience segm
 liam audience from-salesforce -n <name> -q "<SOQL>"   # Salesforce query -> matched audience
 liam audience status <segmentId>        # matching status + resolved size
 liam conversions list                   # account conversions (pick one to track)
+liam report summary [-p <period>]       # account rollup: totals, top performers, flags
+liam report perf <level> [--parent <id>] # per-entity KPI rows
+liam report trend <level> <id> [-b weekly|monthly]  # trend with deltas
 liam launch --brief <brief.json>        # audience + group + campaign + draft creatives
 ```
+
+Periods: `last_7_days`, `last_30_days`, `last_90_days`, `month_to_date`, `last_month`.
 
 `--account` defaults to `defaultAccountId` from config where applicable.
 

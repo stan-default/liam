@@ -104,6 +104,41 @@ export const AudienceUploadSchema = z.object({
 });
 export type AudienceUploadInput = z.infer<typeof AudienceUploadSchema>;
 
+export const ReportPeriodSchema = z.enum([
+  "last_7_days",
+  "last_30_days",
+  "last_90_days",
+  "month_to_date",
+  "last_month",
+]);
+export const ReportLevelSchema = z.enum(["account", "campaign_group", "campaign", "creative"]);
+
+const dateWindow = {
+  period: ReportPeriodSchema.default("last_30_days"),
+  startDate: z.string().optional().describe("YYYY-MM-DD; with endDate, overrides period"),
+  endDate: z.string().optional().describe("YYYY-MM-DD"),
+};
+
+export const PerformanceQuerySchema = z.object({
+  accountId: z.string().optional(),
+  level: ReportLevelSchema.default("campaign_group").describe("campaign_group=campaign, campaign=ad group, creative=ad"),
+  parentId: z.string().optional().describe("Parent group id (for level=campaign) or campaign id (for level=creative)"),
+  ...dateWindow,
+});
+export type PerformanceQueryInput = z.infer<typeof PerformanceQuerySchema>;
+
+export const SummaryQuerySchema = z.object({ accountId: z.string().optional(), ...dateWindow });
+export type SummaryQueryInput = z.infer<typeof SummaryQuerySchema>;
+
+export const TrendQuerySchema = z.object({
+  level: ReportLevelSchema.default("campaign"),
+  entityId: z.string().describe("Numeric id of the account/group/campaign/creative to trend"),
+  bucket: z.enum(["weekly", "monthly"]).default("weekly"),
+  ...dateWindow,
+  period: ReportPeriodSchema.default("last_90_days"),
+});
+export type TrendQueryInput = z.infer<typeof TrendQuerySchema>;
+
 export const SalesforceAudienceSchema = z.object({
   accountId: z.string(),
   name: z.string().min(1).describe("Audience/segment name"),

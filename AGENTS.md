@@ -66,6 +66,12 @@ modules are thin typed wrappers over `LinkedInClient.request()`.
   the conversion's current `campaigns`, append, and `$set` the full list — never drop
   existing associations. Update endpoint: `POST /conversions/{id}?account=<urn>` with
   `X-RestLi-Method: PARTIAL_UPDATE`.
+- **Analytics:** use the `q=analytics` finder with `pivot=` (ACCOUNT|CAMPAIGN_GROUP|CAMPAIGN|
+  CREATIVE), a `dateRange=(start:(year:..,month:..,day:..),end:(..))`, `timeGranularity`
+  (ALL|DAILY|MONTHLY — no native WEEKLY, so bucket daily in code), and a filter
+  `accounts|campaignGroups|campaigns|creatives=List(<encoded urns>)`. All restli-encoded, so it
+  goes through the client's `rawQuery`. `costInUsd` is a string; metric field names are verified
+  in `analytics.ts` DEFAULT_METRIC_FIELDS. Derived KPIs + flags live in `report.ts`.
 - **Non-transactional orchestrator:** `launchFromBrief` creates a campaign group before the
   campaign; a later failure can orphan the group. (Cleanup-on-failure is implemented for
   audience upload; campaign-group cleanup is a known TODO.)
