@@ -5,7 +5,8 @@ import {
   exportHostedEnv,
   createLiads,
   listAdAccounts,
-  uploadAudienceFromCsv,
+  uploadAudienceFromFile,
+  cleanAudienceCsv,
   getDmpSegment,
   launchFromBrief,
   requireDefaultAccountId,
@@ -57,21 +58,33 @@ accounts
 const audience = program.command("audience").description("Matched audiences");
 audience
   .command("upload")
-  .description("Upload a CSV of emails as a DMP segment")
-  .option("-a, --account <id>", "Ad account id (defaults to config defaultAccountId)")
+  .description("Clean a CSV (fix columns, drop extras, domains->URLs) and upload as a matched audience")
   .requiredOption("-n, --name <name>", "Audience name")
   .requiredOption("-f, --csv <path>", "CSV file path")
-  .option("-c, --email-column <col>", "Email column header", "email")
+  .option("-a, --account <id>", "Ad account id (defaults to config defaultAccountId)")
+  .option("-t, --type <type>", "contact|company (auto-detected if omitted)")
+  .option("--dry-run", "Show the cleaned result without uploading")
   .action(async (opts) => {
+    const { readFile } = await import("node:fs/promises");
+    if (opts.dryRun) {
+      const clean = cleanAudienceCsv(await readFile(opts.csv, "utf8"), { type: opts.type });
+      console.log(`type: ${clean.type} | rows: ${clean.rowCount} | kept columns: ${clean.columns.join(", ")}`);
+      if (clean.dropped.length) console.log(`dropped: ${clean.dropped.join(", ")}`);
+      clean.warnings.forEach((w: string) => console.warn(`! ${w}`));
+      console.log("\nsample:");
+      console.log(clean.columns.join(","));
+      clean.rows.slice(0, 3).forEach((r) => console.log(clean.columns.map((c) => r[c] ?? "").join(",")));
+      return;
+    }
     const liads = await createLiads();
-    const res = await uploadAudienceFromCsv(liads.client, liads.getToken, {
+    const res = await uploadAudienceFromFile(liads.client, liads.getToken, {
       accountId: opts.account ?? (await requireDefaultAccountId()),
       name: opts.name,
       csvPath: opts.csv,
-      emailColumn: opts.emailColumn,
+      type: opts.type,
     });
-    console.log(`Segment ${res.segmentId} — status ${res.status}`);
-    console.log(`Uploaded ${res.uploaded} hashed emails (${res.skipped} skipped of ${res.totalRows} rows).`);
+    console.log(`Segment ${res.segmentId} (${res.audienceType}) — status ${res.status}`);
+    console.log(`Uploaded ${res.uploaded} (${res.skipped} skipped of ${res.totalRows} rows).`);
     res.warnings.forEach((w: string) => console.warn(`! ${w}`));
   });
 

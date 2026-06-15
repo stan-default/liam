@@ -20,6 +20,7 @@ export * from "./resources/conversions.js";
 
 // High-level workflows
 export * from "./audience.js";
+export * from "./audienceCsv.js";
 export * from "./creative.js";
 export * from "./orchestrate.js";
 export * from "./resources/analytics.js";

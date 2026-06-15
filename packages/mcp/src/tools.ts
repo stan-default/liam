@@ -9,7 +9,7 @@ import {
   listFacetEntities,
   COMMON_FACETS,
   TargetingSpecSchema,
-  uploadAudienceFromCsv,
+  uploadAudienceFromFile,
   audienceFromSalesforce,
   listConversions,
   getDmpSegment,
@@ -31,7 +31,6 @@ import {
   CampaignInputSchema,
   TextAdCreativeSchema,
   SponsoredImageCreativeSchema,
-  AudienceUploadSchema,
   LaunchFromBriefSchema,
 } from "@liads/core";
 
@@ -113,12 +112,18 @@ export function registerTools(server: McpServer): void {
 
   server.tool(
     "upload_audience_csv",
-    "Upload a CSV of emails as a matched-audience DMP segment (SHA256-hashed). Requires the Audiences product. Matching takes up to 48h.",
-    AudienceUploadSchema.shape,
-    async (args) => {
+    "Clean a CSV at csvPath and upload it as a matched-audience DMP segment. Auto-detects contact (email) vs company (account) lists, normalizes column names, drops non-matcher columns, hashes emails, and converts company domains to website URLs. Requires the Audiences product; matching takes up to 48h.",
+    {
+      accountId: z.string().optional(),
+      name: z.string(),
+      csvPath: z.string().describe("Path to the CSV file on the server"),
+      type: z.enum(["contact", "company"]).optional().describe("Force the list type; auto-detected if omitted"),
+    },
+    async ({ accountId, name, csvPath, type }) => {
       try {
         const liads = await createLiads();
-        return ok(await uploadAudienceFromCsv(liads.client, liads.getToken, AudienceUploadSchema.parse(args)));
+        const acct = accountId ?? (await requireDefaultAccountId());
+        return ok(await uploadAudienceFromFile(liads.client, liads.getToken, { accountId: acct, name, csvPath, type }));
       } catch (e) {
         return fail(e);
       }

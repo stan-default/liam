@@ -54,6 +54,11 @@ modules are thin typed wrappers over `LinkedInClient.request()`.
   `adSegment` urn. Emails are SHA256(lowercased, trimmed). `USER_LIST_UPLOAD` requires
   **300+ rows**; matching takes up to 48h. `uploadAudienceFromCsv` deletes the segment if
   the attach fails (no orphans).
+- **CSV cleaning (`audienceCsv.ts`):** before upload, CSVs are normalized to LinkedIn's matched-
+  audience format. Two types: contact (USER_LIST_UPLOAD, kept column `email`, SHA256-hashed) and
+  company (COMPANY_LIST_UPLOAD, kept `companyname` + `companywebsite`). Header aliases map to
+  canonical names; non-matcher columns are dropped; domains are converted to full `https://`
+  website URLs (LinkedIn matches accounts on the website URL). Type auto-detects from columns.
 - **Audience estimate:** use the `q=targetingCriteriaV2` finder with a restli-encoded
   `targetingCriteria` object (NOT the old dotted `target.includedTargetingFacets...`
   params, which now 400). The HTTP client has a `rawQuery` escape hatch for restli-encoded
