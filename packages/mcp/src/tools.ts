@@ -20,6 +20,13 @@ import {
   createTextAdCreative,
   createSponsoredImageDraft,
   launchFromBrief,
+  getPerformance,
+  performanceSummary,
+  performanceTrend,
+  resolveDateRange,
+  PerformanceQuerySchema,
+  SummaryQuerySchema,
+  TrendQuerySchema,
   CampaignGroupInputSchema,
   CampaignInputSchema,
   TextAdCreativeSchema,
@@ -212,6 +219,57 @@ export function registerTools(server: McpServer): void {
         const liads = await createLiads();
         const input = SponsoredImageCreativeSchema.parse(args);
         return ok(await createSponsoredImageDraft(liads.client, liads.getToken, input));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "performance_summary",
+    "Account performance rollup over a period: totals + KPIs, top campaigns by spend/CTR, worst by cost-per-conversion, and flagged campaigns (spend with no conversions, high CPC, low CTR). Start here for 'how are my ads doing'.",
+    SummaryQuerySchema.shape,
+    async (args) => {
+      try {
+        const liads = await createLiads();
+        const q = SummaryQuerySchema.parse(args);
+        const accountId = q.accountId ?? (await requireDefaultAccountId());
+        return ok(await performanceSummary(liads.client, { accountId, dateRange: resolveDateRange(q) }));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "get_performance",
+    "Per-entity performance with derived KPIs (CTR, CPC, CPM, CPL, conversion rate). level: campaign_group (campaign), campaign (ad group), or creative (ad). Pass parentId to scope campaigns to a group or creatives to a campaign.",
+    PerformanceQuerySchema.shape,
+    async (args) => {
+      try {
+        const liads = await createLiads();
+        const q = PerformanceQuerySchema.parse(args);
+        const accountId = q.accountId ?? (await requireDefaultAccountId());
+        return ok(
+          await getPerformance(liads.client, { accountId, level: q.level, parentId: q.parentId, dateRange: resolveDateRange(q) }),
+        );
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "performance_trend",
+    "Weekly or monthly trend for one entity, with period-over-period deltas on impressions, clicks, spend, conversions, and CTR. Use to spot momentum or creative fatigue.",
+    TrendQuerySchema.shape,
+    async (args) => {
+      try {
+        const liads = await createLiads();
+        const q = TrendQuerySchema.parse(args);
+        return ok(
+          await performanceTrend(liads.client, { level: q.level, entityId: q.entityId, bucket: q.bucket, dateRange: resolveDateRange(q) }),
+        );
       } catch (e) {
         return fail(e);
       }

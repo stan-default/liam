@@ -13,6 +13,10 @@ import {
   estimateAudience,
   audienceFromSalesforce,
   listConversions,
+  performanceSummary,
+  getPerformance,
+  performanceTrend,
+  resolveDateRange,
 } from "@liads/core";
 
 const program = new Command();
@@ -128,6 +132,53 @@ conversions
     const acct = opts.account ?? (await requireDefaultAccountId());
     const list = await listConversions(liads.client, acct);
     for (const c of list) console.log(`${c.id}\t${c.enabled ? "on " : "off"}\t${c.type}\t${c.name}`);
+  });
+
+const pctf = (x: number) => `${(x * 100).toFixed(2)}%`;
+const report = program.command("report").description("Performance reporting and insights");
+report
+  .command("summary")
+  .description("Account rollup: totals, top/bottom performers, flags")
+  .option("-a, --account <id>", "Ad account id (defaults to config)")
+  .option("-p, --period <period>", "last_7_days|last_30_days|last_90_days|month_to_date|last_month", "last_30_days")
+  .action(async (opts) => {
+    const liads = await createLiads();
+    const accountId = opts.account ?? (await requireDefaultAccountId());
+    const s = await performanceSummary(liads.client, { accountId, dateRange: resolveDateRange({ period: opts.period }) });
+    const t = s.totals;
+    console.log(`TOTALS  spend $${t.costUsd}  impr ${t.impressions}  clicks ${t.clicks}  CTR ${pctf(t.ctr)}  conv ${t.conversions}  CPL/conv $${t.costPerConversion}`);
+    console.log("\nTop campaigns by spend:");
+    for (const g of s.topBySpend) console.log(`  $${g.costUsd}\tCTR ${pctf(g.ctr)}\tconv ${g.conversions}\t${g.name ?? g.entityId}`);
+    if (s.flags.length) {
+      console.log("\nFlags:");
+      for (const f of s.flags) console.log(`  [${f.kind}] ${f.name ?? f.entityUrn}: ${f.detail}`);
+    }
+  });
+report
+  .command("perf <level>")
+  .description("Per-entity rows (account|campaign_group|campaign|creative)")
+  .option("-a, --account <id>", "Ad account id (defaults to config)")
+  .option("--parent <id>", "Parent group id (campaigns) or campaign id (creatives)")
+  .option("-p, --period <period>", "Date period", "last_30_days")
+  .action(async (level, opts) => {
+    const liads = await createLiads();
+    const accountId = opts.account ?? (await requireDefaultAccountId());
+    const rows = await getPerformance(liads.client, { accountId, level, parentId: opts.parent, dateRange: resolveDateRange({ period: opts.period }) });
+    for (const r of rows) console.log(`$${r.costUsd}\timpr ${r.impressions}\tCTR ${pctf(r.ctr)}\tCPC $${r.cpc}\tconv ${r.conversions}\t${r.name ?? r.entityId}`);
+  });
+report
+  .command("trend <level> <entityId>")
+  .description("Weekly or monthly trend with deltas")
+  .option("-b, --bucket <bucket>", "weekly|monthly", "weekly")
+  .option("-p, --period <period>", "Date period", "last_90_days")
+  .action(async (level, entityId, opts) => {
+    const liads = await createLiads();
+    const points = await performanceTrend(liads.client, { level, entityId, bucket: opts.bucket, dateRange: resolveDateRange({ period: opts.period }) });
+    for (const p of points) {
+      const dc = p.deltas?.costUsd;
+      const d = dc !== undefined ? ` (spend ${dc >= 0 ? "+" : ""}${pctf(dc)})` : "";
+      console.log(`${p.periodStart}\t$${p.costUsd}\timpr ${p.impressions}\tCTR ${pctf(p.ctr)}\tconv ${p.conversions}${d}`);
+    }
   });
 
 program
