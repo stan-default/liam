@@ -1,7 +1,7 @@
 import type { LinkedInClient } from "../http.js";
 import type { CampaignInput } from "../schemas.js";
 import { sponsoredAccountUrn, campaignGroupUrn } from "../urns.js";
-import { buildTargetingCriteria } from "./targeting.js";
+import { buildTargetingCriteria, geoSegmentSpec } from "./targeting.js";
 import type { CreatedEntity } from "./campaignGroups.js";
 
 /**
@@ -13,9 +13,12 @@ export async function createCampaign(
   client: LinkedInClient,
   input: CampaignInput,
 ): Promise<CreatedEntity> {
+  // Targeting precedence: explicit raw criteria > structured spec > geo/segment shorthand.
   const targetingCriteria =
     input.targetingCriteria ??
-    buildTargetingCriteria({ geoUrns: input.geoUrns, audienceSegmentUrn: input.audienceSegmentUrn });
+    buildTargetingCriteria(
+      input.targeting ?? geoSegmentSpec(input.geoUrns, input.audienceSegmentUrn),
+    );
 
   const body: Record<string, unknown> = {
     account: sponsoredAccountUrn(input.accountId),

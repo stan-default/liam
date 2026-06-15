@@ -29,6 +29,18 @@ export const CampaignTypeSchema = z.enum([
   "SPONSORED_INMAILS",
 ]);
 
+/**
+ * Structured targeting. Keys are short facet names (locations, seniorities,
+ * titles, industries, staffCountRanges, skills, audienceMatchingSegments, ...);
+ * values are entity URNs resolved via the search_targeting tool. URNs within a
+ * facet are ORed; facets are ANDed; excluded facets are ORed.
+ */
+export const TargetingSpecSchema = z.object({
+  include: z.record(z.array(z.string())).describe("facet short name -> entity URNs (ANDed across facets)"),
+  exclude: z.record(z.array(z.string())).optional().describe("facet short name -> entity URNs to exclude"),
+});
+export type TargetingSpecInput = z.infer<typeof TargetingSpecSchema>;
+
 export const CampaignInputSchema = z.object({
   accountId: z.string(),
   campaignGroupId: z.string().describe("Numeric campaign group id"),
@@ -46,6 +58,8 @@ export const CampaignInputSchema = z.object({
    * targeting.ts, or pass an adSegment urn via `audienceSegmentUrn` for convenience.
    */
   targetingCriteria: z.record(z.any()).optional(),
+  /** Preferred: structured targeting (facets + entities). Built into targetingCriteria. */
+  targeting: TargetingSpecSchema.optional(),
   audienceSegmentUrn: z.string().optional().describe("urn:li:adSegment:... to target a matched audience"),
   geoUrns: z.array(z.string()).optional().describe("urn:li:geo:... locations to include"),
   /** LinkedIn Audience Network (off-LinkedIn) delivery. Required by the API; defaults off. */
@@ -98,6 +112,8 @@ export const LaunchFromBriefSchema = z.object({
   type: CampaignTypeSchema.default("SPONSORED_UPDATES"),
   runSchedule: RunScheduleSchema,
   geoUrns: z.array(z.string()).default(["urn:li:geo:103644278"]).describe("Defaults to United States"),
+  /** Optional structured targeting (titles, seniority, industry, etc.) merged with geo. */
+  targeting: TargetingSpecSchema.optional(),
   creatives: z.array(z.union([TextAdCreativeSchema.omit({ accountId: true, campaignId: true }), SponsoredImageCreativeSchema.omit({ accountId: true, campaignId: true })])).optional(),
 });
 export type LaunchFromBriefInput = z.infer<typeof LaunchFromBriefSchema>;

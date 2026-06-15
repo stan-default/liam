@@ -19,6 +19,13 @@ export interface RequestOptions {
   /** Path relative to the REST base, e.g. "/adAccounts". */
   path: string;
   query?: Record<string, string | number | boolean | undefined>;
+  /**
+   * Pre-built query string appended verbatim (no re-encoding). Use for restli
+   * 2.0 finders whose value mixes literal structure chars `(),:` with
+   * percent-encoded URNs (e.g. audienceCounts targetingCriteria). Takes
+   * precedence over `query`.
+   */
+  rawQuery?: string;
   body?: unknown;
   /** Extra headers (merged over defaults). */
   headers?: Record<string, string>;
@@ -60,7 +67,9 @@ export class LinkedInClient {
   ) {}
 
   async request<T = unknown>(opts: RequestOptions): Promise<ApiResponse<T>> {
-    const url = buildUrl(opts.path, opts.query);
+    const url = opts.rawQuery
+      ? `${LINKEDIN_REST_BASE}${opts.path}?${opts.rawQuery}`
+      : buildUrl(opts.path, opts.query);
     const method = opts.method ?? "GET";
 
     let lastErr: unknown;

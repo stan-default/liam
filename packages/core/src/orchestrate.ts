@@ -5,7 +5,7 @@ import { createCampaignGroup } from "./resources/campaignGroups.js";
 import { createCampaign } from "./resources/campaigns.js";
 import { createTextAdCreative } from "./resources/creatives.js";
 import { createSponsoredImageDraft } from "./creative.js";
-import { estimateAudienceByGeo, MIN_AUDIENCE_TO_SERVE } from "./resources/targeting.js";
+import { estimateAudience, MIN_AUDIENCE_TO_SERVE, geoSegmentSpec, type TargetingSpec } from "./resources/targeting.js";
 import { campaignManagerGroupLink, campaignManagerCampaignLink } from "./urns.js";
 
 export interface LaunchResult {
@@ -39,16 +39,22 @@ export async function launchFromBrief(
     warnings.push(
       `Audience "${input.audience.name}" uploaded as segment ${result.segmentId} (${result.uploaded} hashed emails). Attach its adSegment urn to this campaign once it is READY.`,
     );
-  } else {
-    // No matched audience -> targeting is geo-only; sanity-check it can serve.
-    try {
-      const size = await estimateAudienceByGeo(client, input.geoUrns);
-      if (size < MIN_AUDIENCE_TO_SERVE) {
-        warnings.push(`Estimated geo audience is ${size}, below the ${MIN_AUDIENCE_TO_SERVE} minimum to serve.`);
-      }
-    } catch {
-      // Estimate is best-effort; don't block the launch on it.
+  }
+
+  // Targeting = geo (default US) ANDed with any structured facets from the brief.
+  const spec: TargetingSpec = {
+    include: { locations: input.geoUrns, ...(input.targeting?.include ?? {}) },
+    exclude: input.targeting?.exclude,
+  };
+
+  // Best-effort sanity check that the audience can serve.
+  try {
+    const est = await estimateAudience(client, spec);
+    if (!est.canServe) {
+      warnings.push(`Estimated audience is ${est.total}, below the ${MIN_AUDIENCE_TO_SERVE} minimum to serve.`);
     }
+  } catch {
+    // Estimate is best-effort; don't block the launch on it.
   }
 
   // 2. Campaign group (DRAFT). runSchedule is required even for drafts.
@@ -59,7 +65,7 @@ export async function launchFromBrief(
     runSchedule: input.runSchedule,
   });
 
-  // 3. Campaign (DRAFT) — targeting, budget, bid live here.
+  // 3. Campaign (DRAFT): targeting, budget, bid live here.
   const campaign = await createCampaign(client, {
     accountId: input.accountId,
     campaignGroupId: group.id,
@@ -71,8 +77,7 @@ export async function launchFromBrief(
     locale: { country: "US", language: "en" },
     runSchedule: input.runSchedule,
     status: "DRAFT",
-    geoUrns: input.geoUrns,
-    audienceSegmentUrn,
+    targeting: spec,
     offsiteDeliveryEnabled: false,
     politicalIntent: "NOT_POLITICAL",
   });

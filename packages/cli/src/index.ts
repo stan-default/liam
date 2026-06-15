@@ -9,6 +9,8 @@ import {
   getDmpSegment,
   launchFromBrief,
   requireDefaultAccountId,
+  searchTargeting,
+  estimateAudience,
 } from "@liads/core";
 
 const program = new Command();
@@ -74,6 +76,24 @@ audience
     const liads = await createLiads();
     const s = await getDmpSegment(liads.client, segmentId);
     console.log(JSON.stringify(s, null, 2));
+  });
+
+const targeting = program.command("targeting").description("Audience targeting");
+targeting
+  .command("search <facet> <query>")
+  .description("Typeahead-search entities in a facet (e.g. titles 'marketing')")
+  .action(async (facet: string, query: string) => {
+    const liads = await createLiads();
+    const entities = await searchTargeting(liads.client, facet, query);
+    for (const e of entities) console.log(`${e.urn}\t${e.name}`);
+  });
+targeting
+  .command("estimate <facet> <urns...>")
+  .description("Estimate audience size for one facet's URNs (comma/space separated)")
+  .action(async (facet: string, urns: string[]) => {
+    const liads = await createLiads();
+    const est = await estimateAudience(liads.client, { include: { [facet]: urns } });
+    console.log(`total ${est.total} | active ${est.active} | canServe ${est.canServe}`);
   });
 
 program

@@ -3,8 +3,12 @@ import { z } from "zod";
 import {
   createLiads,
   listAdAccounts,
-  estimateAudienceByGeo,
-  MIN_AUDIENCE_TO_SERVE,
+  estimateAudience,
+  searchTargeting,
+  listTargetingFacets,
+  listFacetEntities,
+  COMMON_FACETS,
+  TargetingSpecSchema,
   uploadAudienceFromCsv,
   getDmpSegment,
   createCampaignGroup,
@@ -41,14 +45,55 @@ export function registerTools(server: McpServer): void {
   });
 
   server.tool(
-    "estimate_audience",
-    "Estimate audience size for a set of geo URNs. A campaign needs >=300 members to serve.",
-    { geoUrns: z.array(z.string()).describe("urn:li:geo:... locations") },
-    async ({ geoUrns }) => {
+    "list_targeting_facets",
+    `List LinkedIn targeting facets you can target on. Common short names: ${Object.keys(COMMON_FACETS).join(", ")}.`,
+    {},
+    async () => {
       try {
         const liads = await createLiads();
-        const total = await estimateAudienceByGeo(liads.client, geoUrns);
-        return ok({ total, canServe: total >= MIN_AUDIENCE_TO_SERVE, minimum: MIN_AUDIENCE_TO_SERVE });
+        return ok(await listTargetingFacets(liads.client));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "search_targeting",
+    "Typeahead-search entities within a facet to get their URNs (e.g. facet='titles', query='marketing' -> Marketing Manager urn). Use 'list_facet_entities' for small fixed sets like seniorities. These URNs go into a targeting spec.",
+    { facet: z.string().describe("short facet name, e.g. titles, industries, skills, staffCountRanges, locations"), query: z.string() },
+    async ({ facet, query }) => {
+      try {
+        const liads = await createLiads();
+        return ok(await searchTargeting(liads.client, facet, query));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "list_facet_entities",
+    "List all entities of a small facet (e.g. seniorities, functions, degrees) to pick URNs from.",
+    { facet: z.string().describe("short facet name, e.g. seniorities") },
+    async ({ facet }) => {
+      try {
+        const liads = await createLiads();
+        return ok(await listFacetEntities(liads.client, facet));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "estimate_audience",
+    "Estimate audience size for a structured targeting spec (facet short name -> entity URNs). A campaign needs >=300 members to serve.",
+    TargetingSpecSchema.shape,
+    async (args) => {
+      try {
+        const liads = await createLiads();
+        return ok(await estimateAudience(liads.client, TargetingSpecSchema.parse(args)));
       } catch (e) {
         return fail(e);
       }

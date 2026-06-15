@@ -76,9 +76,24 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
 
 ## Tools (MCP)
 
-`list_ad_accounts`, `estimate_audience`, `upload_audience_csv`, `get_audience_status`,
-`create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`,
-`launch_from_brief` (the end-to-end orchestrator).
+- **Accounts:** `list_ad_accounts`
+- **Targeting:** `list_targeting_facets`, `search_targeting` (typeahead a facet for entity URNs),
+  `list_facet_entities`, `estimate_audience` (structured spec). Talk in plain language
+  ("VPs of demand gen at SaaS companies in the US") and Liam resolves the facets, estimates
+  reach, then builds the campaign.
+- **Audiences:** `upload_audience_csv`, `get_audience_status`
+- **Campaigns:** `create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`
+- **Orchestrator:** `launch_from_brief` (audience + group + campaign + draft creatives in one call)
+
+### Targeting spec
+
+Structured targeting uses short facet names mapped to entity URNs (resolve URNs with
+`search_targeting`). URNs within a facet are ORed; facets are ANDed; excluded facets are ORed.
+
+```json
+{ "include": { "locations": ["urn:li:geo:103644278"], "seniorities": ["urn:li:seniority:7"], "titles": ["urn:li:title:26587"] },
+  "exclude": { "industries": ["urn:li:industry:47"] } }
+```
 
 ## Safety
 
