@@ -30,6 +30,21 @@ export const CampaignTypeSchema = z.enum([
 ]);
 
 /**
+ * LinkedIn campaign objective. Use ENGAGEMENT to sponsor another member's post
+ * (thought-leader ads, e.g. boosting a CEO's post) — LinkedIn requires the
+ * objective be ENGAGEMENT for that ad format.
+ */
+export const ObjectiveTypeSchema = z.enum([
+  "BRAND_AWARENESS",
+  "ENGAGEMENT",
+  "JOB_APPLICANT",
+  "LEAD_GENERATION",
+  "VIDEO_VIEW",
+  "WEBSITE_CONVERSION",
+  "WEBSITE_VISIT",
+]);
+
+/**
  * Structured targeting. Keys are short facet names (locations, seniorities,
  * titles, industries, staffCountRanges, skills, audienceMatchingSegments, ...);
  * values are entity URNs resolved via the search_targeting tool. URNs within a
@@ -46,6 +61,9 @@ export const CampaignInputSchema = z.object({
   campaignGroupId: z.string().describe("Numeric campaign group id"),
   name: z.string().min(1),
   type: CampaignTypeSchema.default("SPONSORED_UPDATES"),
+  objectiveType: ObjectiveTypeSchema.optional().describe(
+    "Campaign objective. Required to be ENGAGEMENT to sponsor another member's post (thought-leader ads).",
+  ),
   costType: z.enum(["CPC", "CPM", "CPV"]).default("CPM"),
   dailyBudget: MoneySchema.optional(),
   totalBudget: MoneySchema.optional(),
@@ -62,8 +80,6 @@ export const CampaignInputSchema = z.object({
   targeting: TargetingSpecSchema.optional(),
   audienceSegmentUrn: z.string().optional().describe("urn:li:adSegment:... to target a matched audience"),
   geoUrns: z.array(z.string()).optional().describe("urn:li:geo:... locations to include"),
-  /** LinkedIn Audience Network (off-LinkedIn) delivery. Required by the API; defaults off. */
-  offsiteDeliveryEnabled: z.boolean().default(false),
   /** Political-ad self-declaration, mandatory for EU targeting. Defaults to not political. */
   politicalIntent: z.enum(["NOT_POLITICAL", "POLITICAL", "NOT_DECLARED"]).default("NOT_POLITICAL"),
   /** Existing conversion ids to associate (select an insight-tag conversion to track). */

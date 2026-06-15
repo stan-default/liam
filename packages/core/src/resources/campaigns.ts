@@ -31,9 +31,14 @@ export async function createCampaign(
     runSchedule: input.runSchedule,
     status: input.status,
     targetingCriteria,
-    offsiteDeliveryEnabled: input.offsiteDeliveryEnabled ?? false,
+    // Hard rule: never enable Audience Expansion or the LinkedIn Audience
+    // Network. Both are forced off on every ad set we create — they spend
+    // budget on low-quality, off-target reach. Not configurable on purpose.
+    audienceExpansionEnabled: false,
+    offsiteDeliveryEnabled: false,
     politicalIntent: input.politicalIntent ?? "NOT_POLITICAL",
   };
+  if (input.objectiveType) body.objectiveType = input.objectiveType;
   if (input.dailyBudget) body.dailyBudget = input.dailyBudget;
   if (input.totalBudget) body.totalBudget = input.totalBudget;
   if (input.unitCost) body.unitCost = input.unitCost;
