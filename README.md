@@ -9,8 +9,8 @@ Manager.
 > Unofficial and not affiliated with or endorsed by LinkedIn.
 
 > Covers creation, matched audiences (including building one straight from Salesforce),
-> conversion selection, and performance reporting/insights. Salesforce↔LinkedIn outcome
-> cross-reference is next on the roadmap.
+> conversion selection, and performance reporting/insights. See [ROADMAP.md](./ROADMAP.md)
+> for what's shipped and what's planned next.
 
 ## Hierarchy mapping (LinkedIn differs from Google/Meta)
 
