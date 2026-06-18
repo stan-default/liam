@@ -93,6 +93,15 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
 - **Reporting:** `performance_summary` (account rollup + top/bottom + flags), `get_performance`
   (per-entity KPIs at any level), `performance_trend` (weekly/monthly with deltas). KPIs: CTR,
   CPC, CPM, CPL, conversion rate, cost per conversion. Levels: campaign_group → campaign → creative.
+- **Competitor intel:** `inspect_competitor_ads` — read any company's ads from the LinkedIn Ad
+  Library (no ad-account access needed). The **official Ad Library API** (`GET /rest/adLibrary`,
+  requires the "LinkedIn Ad Library" product grant) returns structured metadata — advertiser, payer,
+  format, and for EU-served ads run dates, impression ranges, per-country split, and targeting facets —
+  but no creative. A **Playwright scraper** of the public library supplies the ad copy/image. Engines
+  (`engine`): `api` (metadata only, fast, works hosted), `scraper` (copy via browser, local, supports
+  company-id), and `auto` (default — API metadata + copy layered from each ad's detail page, falling
+  back to the scraper if the API isn't provisioned). Search by `advertiser` name or `keyword` (the API
+  has no company-id or date filter). CLI: `liam competitor ads`.
 
 ### Targeting spec
 

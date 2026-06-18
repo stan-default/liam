@@ -167,6 +167,20 @@ export const SalesforceAudienceSchema = z.object({
 });
 export type SalesforceAudienceInput = z.infer<typeof SalesforceAudienceSchema>;
 
+export const AdLibraryScanSchema = z.object({
+  advertiser: z.string().optional().describe("Competitor/advertiser display name (accountOwner)"),
+  companyId: z.string().optional().describe("Numeric LinkedIn company id — more precise than name"),
+  keyword: z.string().optional().describe("Free-text keyword search across ad copy"),
+  countries: z.array(z.string()).optional().describe("ISO-3166 country codes to scope, e.g. ['US','GB']"),
+  max: z.number().int().positive().max(500).default(50).describe("Max ads to collect"),
+  engine: z.enum(["auto", "api", "scraper"]).default("auto").describe(
+    "auto = official API for metadata + scraper for copy (falls back to pure scraper if the API isn't provisioned); api = official API only, metadata no copy (works hosted); scraper = browser only (local, no auth)",
+  ),
+  deep: z.boolean().default(true).describe("auto: also layer in ad copy from the public library; scraper: fetch each ad's detail page for run dates / impressions / targeting"),
+  concurrency: z.number().int().positive().max(8).default(4).describe("Scraper: parallel detail-page fetches when deep"),
+});
+export type AdLibraryScanInput = z.infer<typeof AdLibraryScanSchema>;
+
 export const LaunchFromBriefSchema = z.object({
   accountId: z.string(),
   campaignGroupName: z.string(),

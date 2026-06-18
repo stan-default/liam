@@ -18,6 +18,8 @@ import {
   getPerformance,
   performanceTrend,
   resolveDateRange,
+  scanCompetitorAds,
+  parseAdvertiserQuery,
 } from "@liads/core";
 
 const program = new Command();
@@ -192,6 +194,60 @@ report
       const d = dc !== undefined ? ` (spend ${dc >= 0 ? "+" : ""}${pctf(dc)})` : "";
       console.log(`${p.periodStart}\t$${p.costUsd}\timpr ${p.impressions}\tCTR ${pctf(p.ctr)}\tconv ${p.conversions}${d}`);
     }
+  });
+
+const competitor = program.command("competitor").description("Competitor ad intelligence (public LinkedIn Ad Library)");
+competitor
+  .command("ads <advertiser>")
+  .description("Scan a competitor's ads from the public Ad Library. <advertiser> = company name, numeric company id, or an ad-library/company URL.")
+  .option("--company-id <id>", "Force a numeric LinkedIn company id (most precise)")
+  .option("-k, --keyword <text>", "Keyword search across ad copy instead of an advertiser")
+  .option("-c, --country <codes>", "Comma-separated ISO country codes, e.g. US,GB")
+  .option("-e, --engine <engine>", "auto | api | scraper", "auto")
+  .option("-m, --max <n>", "Max ads to collect", (v) => parseInt(v, 10), 50)
+  .option("--no-deep", "auto: skip copy layering (API metadata only); scraper: skip per-ad detail — faster")
+  .option("--headed", "Scraper: show the browser window (debug)")
+  .option("--json", "Print raw JSON instead of a summary")
+  .action(async (advertiser: string, opts) => {
+    const parsed = parseAdvertiserQuery(advertiser);
+    const scan = await scanCompetitorAds({
+      advertiser: opts.companyId ? undefined : parsed.advertiser,
+      companyId: opts.companyId ?? parsed.companyId,
+      keyword: opts.keyword ?? parsed.keyword,
+      countries: opts.country ? String(opts.country).split(",").map((s: string) => s.trim()).filter(Boolean) : undefined,
+      engine: opts.engine,
+      max: opts.max,
+      deep: opts.deep,
+      headless: !opts.headed,
+      onProgress: (m) => console.error(`… ${m}`),
+    });
+    if (opts.json) {
+      console.log(JSON.stringify(scan, null, 2));
+      return;
+    }
+    const q = scan.query.advertiser ?? scan.query.companyId ?? scan.query.keyword;
+    console.log(`\n${q} — ${scan.fetched} ads via ${scan.engine}${scan.totalReported ? ` (library reports ${scan.totalReported} total)` : ""}`);
+    if (scan.note) console.log(scan.note);
+    console.log("");
+    scan.ads.forEach((a, i) => {
+      const d = a.detail;
+      const sponsor = a.promotedBy ? ` [${a.promotedBy}]` : "";
+      const fmt = (d?.format ?? a.format) ? ` {${d?.format ?? a.format}}` : "";
+      const ran = d?.ranFrom ? `  ran ${d.ranFrom}${d.ranTo && d.ranTo !== d.ranFrom ? `→${d.ranTo}` : ""}` : "";
+      const impr = d?.totalImpressions ? `  impr ${d.totalImpressions}` : "";
+      const geo = d?.impressionsByCountry?.length ? `  geo ${d.impressionsByCountry.slice(0, 3).map((c) => `${c.country} ${c.share}`).join(", ")}` : "";
+      console.log(`${String(i + 1).padStart(2)}. ${a.advertiser}${sponsor}${fmt}${ran}${impr}${geo}`);
+      const copy = (a.commentary ?? "").replace(/\s+/g, " ").trim();
+      if (copy) console.log(`    “${copy.slice(0, 180)}${copy.length > 180 ? "…" : ""}”`);
+      if (d?.targeting?.length) {
+        const tg = d.targeting
+          .map((t) => `${t.facet}: ${[...t.included, ...t.excluded.map((e) => `-${e}`)].join("/")}`)
+          .join("  ·  ");
+        console.log(`    🎯 ${tg}`);
+      }
+      console.log(`    ${a.detailUrl}`);
+    });
+    console.log(`\nReview the copy + formats + targeting + cadence above to synthesize messaging themes and how this account is run.`);
   });
 
 program

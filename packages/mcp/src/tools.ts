@@ -32,6 +32,8 @@ import {
   TextAdCreativeSchema,
   SponsoredImageCreativeSchema,
   LaunchFromBriefSchema,
+  scanCompetitorAds,
+  AdLibraryScanSchema,
 } from "@liads/core";
 
 const ok = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] });
@@ -289,6 +291,20 @@ export function registerTools(server: McpServer): void {
       try {
         const liads = await createLiads();
         return ok(await launchFromBrief(liads, LaunchFromBriefSchema.parse(args)));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "inspect_competitor_ads",
+    "Pull a competitor's (or any company's) live and recent ads from the LinkedIn Ad Library. Prefers the official Ad Library API (engine 'auto'/'api'; works hosted but the app must be granted the 'LinkedIn Ad Library' product, else it 403s and 'auto' falls back to a local browser scraper — local only). Returns each ad's advertiser, sponsor ('promoted by'), full copy, format, image, and run dates / estimated impressions / per-country targeting (EU-served ads). Use to analyze messaging themes, offers, creative formats, posting cadence, and how their account is run. Name search is broad (includes partners/resellers); pass a numeric companyId for one company's own ads. Synthesize themes/trends rather than dumping ads raw.",
+    AdLibraryScanSchema.shape,
+    async (args) => {
+      try {
+        const q = AdLibraryScanSchema.parse(args);
+        return ok(await scanCompetitorAds(q));
       } catch (e) {
         return fail(e);
       }

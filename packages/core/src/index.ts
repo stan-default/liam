@@ -28,3 +28,9 @@ export * from "./report.js";
 
 // Salesforce reader (Phase 3 foundation)
 export * from "./salesforce.js";
+
+// Competitor ad intelligence — official Ad Library API (preferred) with a
+// public-library browser scraper as fallback.
+export * from "./adLibrary.js";
+export * from "./adLibraryApi.js";
+export * from "./competitorAds.js";
