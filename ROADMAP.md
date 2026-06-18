@@ -19,6 +19,13 @@ creates drafts, and nothing spends until you activate it.
 - **Reporting and insights** — per-level performance (account, campaign group, campaign,
   creative), weekly/monthly trends with deltas, derived KPIs (CTR, CPC, CPM, CPL, conversion
   rate, cost per conversion), and heuristic flags.
+- **Competitor ad intelligence** — read any company's live and recent ads from the LinkedIn Ad
+  Library (no ad-account access needed). The official Ad Library API (`GET /rest/adLibrary`, verified
+  live) returns structured metadata — advertiser, payer, format, and for EU-served ads run dates,
+  impression ranges, per-country split, and targeting facets — but no creative; a Playwright scraper of
+  the public library layers in the ad copy/image. Engines `api` / `scraper` / `auto` (default: API
+  metadata + copy from each ad's detail page, scraper fallback if unprovisioned). Synthesize messaging
+  themes and how the account is run from the result. CLI `competitor ads`, MCP `inspect_competitor_ads`.
 - **Delivery** — local CLI, local MCP server, and a single-tenant hosted MCP on Vercel.
 
 ## Planned
