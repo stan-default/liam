@@ -20,6 +20,12 @@ import {
   resolveDateRange,
   scanCompetitorAds,
   parseAdvertiserQuery,
+  recordChange,
+  readChanges,
+  computeLift,
+  normalizeEntityType,
+  changelogPath,
+  LIFT_METRICS,
 } from "@liads/core";
 
 const program = new Command();
@@ -193,6 +199,100 @@ report
       const dc = p.deltas?.costUsd;
       const d = dc !== undefined ? ` (spend ${dc >= 0 ? "+" : ""}${pctf(dc)})` : "";
       console.log(`${p.periodStart}\t$${p.costUsd}\timpr ${p.impressions}\tCTR ${pctf(p.ctr)}\tconv ${p.conversions}${d}`);
+    }
+  });
+
+const fmtDelta = (x: number) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)}%`;
+const changelog = program.command("changelog").description("Local journal of ad changes (for lift comparison)");
+changelog
+  .command("add")
+  .description("Manually log a change (e.g. one made in Campaign Manager) to the journal")
+  .requiredOption("-t, --type <type>", "campaignGroup|campaign|creative")
+  .requiredOption("-i, --id <entityId>", "Entity id the change applies to")
+  .option("-f, --field <name>", "Name of the field that changed (e.g. dailyBudget, headline)")
+  .option("--before <value>", "Prior value of the field")
+  .option("--after <value>", "New value of the field")
+  .option("-n, --note <text>", "Freeform note instead of a field change")
+  .option("-l, --label <text>", "Hypothesis/label for this change (e.g. 'outcome-led headline test')")
+  .option("--name <name>", "Human name of the entity (for nicer listings)")
+  .option("--tags <list>", "Comma-separated tags")
+  .option("--at <iso>", "When the change took effect (ISO 8601); defaults to now")
+  .action(async (opts) => {
+    const type = normalizeEntityType(opts.type);
+    const tags = opts.tags ? String(opts.tags).split(",").map((s: string) => s.trim()).filter(Boolean) : undefined;
+    const isUpdate = Boolean(opts.field);
+    const event = await recordChange({
+      source: "manual",
+      kind: isUpdate ? "update" : "note",
+      entity: { type, id: opts.id, name: opts.name },
+      fields: isUpdate ? [{ field: opts.field, before: opts.before, after: opts.after }] : undefined,
+      summary: isUpdate ? `${opts.field} → ${opts.after ?? "(set)"}` : opts.note,
+      label: opts.label,
+      tags,
+      ts: opts.at,
+    });
+    console.log(`Logged ${event.id} — ${event.entity.type} ${event.entity.id}: ${event.summary ?? "(no summary)"}`);
+    console.log(`Journal: ${changelogPath()}`);
+  });
+changelog
+  .command("list")
+  .description("List recorded changes, newest first")
+  .option("-t, --type <type>", "Filter by campaignGroup|campaign|creative")
+  .option("-i, --id <entityId>", "Filter by entity id")
+  .option("--tag <tag>", "Filter by tag")
+  .option("-n, --limit <n>", "Max rows", (v) => parseInt(v, 10), 50)
+  .option("--json", "Print raw JSON")
+  .action(async (opts) => {
+    const type = opts.type ? normalizeEntityType(opts.type) : undefined;
+    const all = await readChanges({ type, id: opts.id, tag: opts.tag });
+    const rows = all.slice(0, opts.limit);
+    if (opts.json) {
+      console.log(JSON.stringify(rows, null, 2));
+      return;
+    }
+    if (rows.length === 0) {
+      console.log(`No changes recorded yet. Journal: ${changelogPath()}`);
+      return;
+    }
+    for (const e of rows) {
+      const when = e.ts.slice(0, 16).replace("T", " ");
+      const who = e.source === "liam" ? "auto" : "man ";
+      const label = e.label ? `  «${e.label}»` : "";
+      console.log(`${when}  ${who}  ${e.entity.type}/${e.entity.id}  ${e.summary ?? e.kind}${label}`);
+    }
+    console.log(`\n${rows.length} of ${all.length} change(s). Run \`liam lift <level> <entityId>\` to measure performance lift.`);
+  });
+
+program
+  .command("lift <level> <entityId>")
+  .description("Compare performance before vs. after each recorded change to an entity (level: campaign_group|campaign|creative)")
+  .option("-w, --window <days>", "Days on each side of a change", (v) => parseInt(v, 10), 14)
+  .option("--json", "Print raw JSON")
+  .action(async (level, entityId, opts) => {
+    const type = normalizeEntityType(level);
+    const liads = await createLiads();
+    const lifts = await computeLift(liads.client, { type, entityId, windowDays: opts.window });
+    if (opts.json) {
+      console.log(JSON.stringify(lifts, null, 2));
+      return;
+    }
+    if (lifts.length === 0) {
+      console.log(`No recorded changes for ${type} ${entityId}. Log one with \`liam changelog add\`, or let Liam capture changes automatically.`);
+      return;
+    }
+    console.log(`Lift for ${type} ${entityId} — ${opts.window}d before vs. after each change`);
+    console.log(`(directional pre/post comparison; confounded by seasonality, learning phase, and budget changes)\n`);
+    for (const l of lifts) {
+      const when = l.change.ts.slice(0, 10);
+      const label = l.change.label ? ` «${l.change.label}»` : "";
+      console.log(`▸ ${when}  ${l.change.summary ?? l.change.kind}${label}`);
+      console.log(`    before ${l.before.start}…${l.before.end}   after ${l.after.start}…${l.after.end}${l.after.partial ? ` (partial, ${l.after.days}d)` : ""}`);
+      for (const k of LIFT_METRICS) {
+        const b = l.before.metrics[k] as number;
+        const a = l.after.metrics[k] as number;
+        console.log(`    ${k.padEnd(18)} ${String(b).padStart(10)} → ${String(a).padStart(10)}   ${fmtDelta(l.deltas[k] ?? 0)}`);
+      }
+      console.log("");
     }
   });
 

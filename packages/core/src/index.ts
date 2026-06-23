@@ -26,6 +26,9 @@ export * from "./orchestrate.js";
 export * from "./resources/analytics.js";
 export * from "./report.js";
 
+// Change journal + lift comparison (local JSONL store).
+export * from "./changelog.js";
+
 // Salesforce reader (Phase 3 foundation)
 export * from "./salesforce.js";
 

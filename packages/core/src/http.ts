@@ -39,6 +39,26 @@ export interface ApiResponse<T> {
   headers: Headers;
 }
 
+/**
+ * A successful write (POST/PUT/DELETE) as seen at the HTTP layer. Emitted to an
+ * optional `onMutation` hook so callers can journal ad changes without every
+ * resource function having to opt in. Carries enough to reconstruct what changed:
+ * the path/method identify the entity + operation, `restliId` is the created id,
+ * and `body` holds the create payload or a PARTIAL_UPDATE `patch.$set`.
+ */
+export interface MutationEvent {
+  method: string;
+  path: string;
+  query?: RequestOptions["query"];
+  headers?: Record<string, string>;
+  body?: unknown;
+  status: number;
+  restliId?: string;
+}
+
+/** Side-effect hook invoked after a successful write. Must never throw. */
+export type MutationHook = (m: MutationEvent) => void | Promise<void>;
+
 /** Supplies a valid (auto-refreshed) bearer token. Implemented in auth.ts. */
 export type TokenProvider = () => Promise<string>;
 
@@ -64,6 +84,8 @@ export class LinkedInClient {
   constructor(
     private readonly config: AppConfig,
     private readonly getToken: TokenProvider,
+    /** Optional: notified after every successful write, for change journaling. */
+    private readonly onMutation?: MutationHook,
   ) {}
 
   async request<T = unknown>(opts: RequestOptions): Promise<ApiResponse<T>> {
@@ -120,10 +142,22 @@ export class LinkedInClient {
         throw new LinkedInApiError(message, res.status, data ?? text, serviceErrorCode);
       }
 
+      const restliId = res.headers.get("x-restli-id") ?? undefined;
+
+      // Journal writes (best-effort). A logging failure must never surface as a
+      // failed API call, so swallow everything the hook might throw or reject.
+      if (this.onMutation && method !== "GET") {
+        try {
+          await this.onMutation({ method, path: opts.path, query: opts.query, headers: opts.headers, body: opts.body, status: res.status, restliId });
+        } catch {
+          /* change journaling is non-critical */
+        }
+      }
+
       return {
         data: data as T,
         status: res.status,
-        restliId: res.headers.get("x-restli-id") ?? undefined,
+        restliId,
         headers: res.headers,
       };
     }
