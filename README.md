@@ -102,6 +102,9 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
   company-id), and `auto` (default — API metadata + copy layered from each ad's detail page, falling
   back to the scraper if the API isn't provisioned). Search by `advertiser` name or `keyword` (the API
   has no company-id or date filter). CLI: `liam competitor ads`.
+- **Change journal & lift:** `log_ad_change` (record a change), `list_ad_changes`, `compute_lift`
+  (before-vs-after performance for each recorded change). Liam auto-journals every change it makes;
+  see [Change journal & lift](#change-journal--lift) below.
 
 ### Targeting spec
 
@@ -132,11 +135,36 @@ liam report summary [-p <period>]       # account rollup: totals, top performers
 liam report perf <level> [--parent <id>] # per-entity KPI rows
 liam report trend <level> <id> [-b weekly|monthly]  # trend with deltas
 liam launch --brief <brief.json>        # audience + group + campaign + draft creatives
+liam changelog list [-t <type>] [-i <id>]           # recorded ad changes, newest first
+liam changelog add -t <type> -i <id> -f <field> --after <v> [-l <label>]   # log a change made elsewhere
+liam lift <level> <id> [-w <days>]      # before-vs-after performance for each recorded change
 ```
 
 Periods: `last_7_days`, `last_30_days`, `last_90_days`, `month_to_date`, `last_month`.
 
 `--account` defaults to `defaultAccountId` from config where applicable.
+
+## Change journal & lift
+
+Liam keeps an append-only journal of every change made to an ad entity so you can measure the
+**lift** of a change: how performance differed in the window before it versus after.
+
+- **Where it lives:** `~/.liads/changelog.jsonl` (one JSON object per line). It's a plain local
+  file — no database, no account, no setup. Override the path with `LIADS_CHANGELOG_PATH`.
+- **Auto-capture:** every create/update Liam makes to a campaign group, campaign, or creative is
+  journaled automatically (captured at the one HTTP chokepoint, so it can't be forgotten).
+- **Manual entries:** log changes made outside Liam (e.g. in Campaign Manager), or attach a
+  hypothesis, with `liam changelog add` / the `log_ad_change` tool. Use `-l/--label` to name the
+  test (e.g. `"outcome-led headline test"`) and `--tags` to group related changes.
+- **Lift:** `liam lift <level> <entityId>` (or `compute_lift`) reads the journal for that entity
+  and, for each change, compares the `--window` days before (default 14) against the same window
+  after, reporting before/after KPIs and per-metric deltas (CTR, CPC, conversion rate,
+  cost-per-conversion, …). Recent changes get a clamped, `partial` after-window.
+
+This is a **directional pre/post comparison, not a controlled experiment** — it's confounded by
+seasonality, the LinkedIn learning phase after an edit, and any concurrent budget change. Read the
+deltas as a signal, not proof. Set `LIADS_NO_CHANGELOG=1` to disable auto-capture; journaling is
+also off on hosted deploys (read-only filesystem).
 
 ## Configuration
 

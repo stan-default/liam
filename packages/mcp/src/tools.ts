@@ -34,7 +34,14 @@ import {
   LaunchFromBriefSchema,
   scanCompetitorAds,
   AdLibraryScanSchema,
+  recordChange,
+  readChanges,
+  computeLift,
 } from "@liads/core";
+
+const AD_ENTITY_TYPE = z
+  .enum(["campaignGroup", "campaign", "creative"])
+  .describe("campaignGroup (the 'campaign'), campaign (the 'ad group'), or creative (the 'ad')");
 
 const ok = (data: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] });
 const fail = (e: unknown) => ({
@@ -291,6 +298,79 @@ export function registerTools(server: McpServer): void {
       try {
         const liads = await createLiads();
         return ok(await launchFromBrief(liads, LaunchFromBriefSchema.parse(args)));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "log_ad_change",
+    "Record a change to an ad entity in the local change journal, so a later lift report can compare performance before vs. after it. Liam logs its own changes automatically — use this for changes made elsewhere (e.g. in Campaign Manager) or to attach a hypothesis/label. Provide field+after for a field change, or note for a freeform annotation.",
+    {
+      entityType: AD_ENTITY_TYPE,
+      entityId: z.string().describe("Numeric id of the campaign group / campaign / creative"),
+      name: z.string().optional().describe("Human name of the entity (for nicer listings)"),
+      field: z.string().optional().describe("Field that changed, e.g. dailyBudget, headline, status"),
+      before: z.string().optional().describe("Prior value, if known"),
+      after: z.string().optional().describe("New value"),
+      note: z.string().optional().describe("Freeform note (used when there is no specific field)"),
+      label: z.string().optional().describe("Hypothesis/label, e.g. 'outcome-led headline test'"),
+      tags: z.array(z.string()).optional(),
+      at: z.string().optional().describe("ISO 8601 time the change took effect; defaults to now"),
+    },
+    async ({ entityType, entityId, name, field, before, after, note, label, tags, at }) => {
+      try {
+        const isUpdate = Boolean(field);
+        return ok(
+          await recordChange({
+            source: "manual",
+            kind: isUpdate ? "update" : "note",
+            entity: { type: entityType, id: entityId, name },
+            fields: isUpdate ? [{ field: field!, before, after }] : undefined,
+            summary: isUpdate ? `${field} → ${after ?? "(set)"}` : note,
+            label,
+            tags,
+            ts: at,
+          }),
+        );
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "list_ad_changes",
+    "List recorded ad changes (newest first) from the local change journal. Filter by entity type/id or tag. Use this to see what's been changed before computing lift.",
+    {
+      entityType: AD_ENTITY_TYPE.optional(),
+      entityId: z.string().optional(),
+      tag: z.string().optional(),
+      limit: z.number().int().positive().optional().describe("Max rows (default 50)"),
+    },
+    async ({ entityType, entityId, tag, limit }) => {
+      try {
+        const all = await readChanges({ type: entityType, id: entityId, tag });
+        return ok(all.slice(0, limit ?? 50));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "compute_lift",
+    "For each recorded change to an entity, compare performance in the window before the change against the window after it (default 14 days each side). Returns before/after KPI windows and per-metric relative deltas (CTR, CPC, conversion rate, cost-per-conversion, etc.). This is a directional pre/post comparison, NOT a controlled experiment — confounded by seasonality, the LinkedIn learning phase after edits, and concurrent budget changes; present it as a signal and call out partial after-windows on recent changes.",
+    {
+      entityType: AD_ENTITY_TYPE,
+      entityId: z.string(),
+      windowDays: z.number().int().positive().optional().describe("Days on each side of a change (default 14)"),
+    },
+    async ({ entityType, entityId, windowDays }) => {
+      try {
+        const liads = await createLiads();
+        return ok(await computeLift(liads.client, { type: entityType, entityId, windowDays }));
       } catch (e) {
         return fail(e);
       }
