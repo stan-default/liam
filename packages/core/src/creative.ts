@@ -45,8 +45,12 @@ export async function createSponsoredImageDraft(
     organizationUrn: input.organizationUrn,
     commentary: input.commentary,
     imageUrn,
+    headline: input.headline,
+    clickUri: input.clickUri,
+    callToAction: input.callToAction,
     altText: input.headline,
     intendedStatus: input.status,
+    name: input.name,
   });
 
   return { creativeId: created.id, status: input.status, imageUrn };

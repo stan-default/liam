@@ -45,6 +45,12 @@ export async function createInlineImageCreative(
     organizationUrn: string;
     commentary: string;
     imageUrn: string;
+    /** Rendered as the ad headline under the image (content.media.title). */
+    headline?: string;
+    /** Click-through destination (contentLandingPage on the DSC post). */
+    clickUri?: string;
+    /** Call-to-action button label, e.g. LEARN_MORE. Only applied when clickUri is set. */
+    callToAction?: string;
     altText?: string;
     intendedStatus?: "DRAFT" | "ACTIVE" | "PAUSED";
     name?: string;
@@ -63,23 +69,48 @@ export async function createInlineImageCreative(
             adContext: {
               dscAdAccount: sponsoredAccountUrn(opts.accountId),
               dscStatus: "ACTIVE",
+              ...(opts.name ? { dscName: opts.name } : {}),
             },
             author: opts.organizationUrn,
             commentary: opts.commentary,
             visibility: "PUBLIC",
+            distribution: { feedDistribution: "NONE" },
             lifecycleState: "PUBLISHED",
             isReshareDisabledByAuthor: false,
-            content: {
-              media: { id: opts.imageUrn, ...(opts.altText ? { altText: opts.altText } : {}) },
-            },
+            ...(opts.clickUri
+              ? {
+                  contentLandingPage: opts.clickUri,
+                  contentCallToActionLabel: opts.callToAction ?? "LEARN_MORE",
+                }
+              : {}),
+            // With a click-through URL, Campaign Manager stores single-image ads as
+            // article content (title/thumbnail/source) — its ad editor reads the
+            // Destination URL from content.article.source and won't hydrate the form
+            // from contentLandingPage alone. Without a URL, plain media content.
+            content: opts.clickUri
+              ? {
+                  article: {
+                    title: opts.headline ?? "",
+                    thumbnail: opts.imageUrn,
+                    source: opts.clickUri,
+                  },
+                }
+              : {
+                  media: {
+                    id: opts.imageUrn,
+                    ...(opts.headline ? { title: opts.headline } : {}),
+                    ...(opts.altText ? { altText: opts.altText } : {}),
+                  },
+                },
           },
         },
         ...(opts.name ? { name: opts.name } : {}),
       },
     },
   });
-  if (!res.restliId) throw new Error("Creative created but no id returned");
-  return { id: res.restliId };
+  const inlineId = res.restliId ?? (res.data as { value?: { creative?: string } } | undefined)?.value?.creative;
+  if (!inlineId) throw new Error("Creative created but no id returned");
+  return { id: inlineId };
 }
 
 /**
