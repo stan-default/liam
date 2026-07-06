@@ -149,9 +149,12 @@ export async function setCreativeStatus(
   creativeId: string,
   intendedStatus: "ACTIVE" | "PAUSED" | "DRAFT" | "ARCHIVED",
 ): Promise<void> {
+  // Accept a numeric id or a full URN; the URN's colons must be URL-encoded
+  // or LinkedIn rejects the path with "Syntax exception in path variables".
+  const urn = creativeId.startsWith("urn:") ? creativeId : `urn:li:sponsoredCreative:${creativeId}`;
   await client.request({
     method: "POST",
-    path: `/adAccounts/${accountId}/creatives/${creativeId}`,
+    path: `/adAccounts/${accountId}/creatives/${encodeURIComponent(urn)}`,
     headers: { "X-RestLi-Method": "PARTIAL_UPDATE" },
     body: { patch: { $set: { intendedStatus } } },
   });
