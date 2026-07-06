@@ -1,4 +1,5 @@
 import type { LinkedInClient } from "../http.js";
+import { searchAll } from "./search.js";
 import type { CampaignInput } from "../schemas.js";
 import { sponsoredAccountUrn, campaignGroupUrn } from "../urns.js";
 import { buildTargetingCriteria, geoSegmentSpec, withDefaultExclusions } from "./targeting.js";
@@ -89,4 +90,44 @@ export async function setCampaignStatus(
     headers: { "X-RestLi-Method": "PARTIAL_UPDATE" },
     body: { patch: { $set: { status } } },
   });
+}
+
+export interface CampaignSummary {
+  id: string;
+  name: string;
+  status: string;
+  campaignGroupId: string;
+  format?: string;
+  objectiveType?: string;
+}
+
+/**
+ * List ALL campaigns ("ad groups") on the account, drafts included, optionally
+ * scoped to one campaign group. Reads account structure directly rather than
+ * analytics, so zero-spend drafts show up.
+ */
+export async function listCampaigns(
+  client: LinkedInClient,
+  accountId: string,
+  opts: { groupId?: string; includeArchived?: boolean } = {},
+): Promise<CampaignSummary[]> {
+  const els = await searchAll<{
+    id: number | string;
+    name?: string;
+    status?: string;
+    campaignGroup?: string;
+    format?: string;
+    objectiveType?: string;
+  }>(client, `/adAccounts/${accountId}/adCampaigns`);
+  return els
+    .map((e) => ({
+      id: String(e.id),
+      name: e.name ?? "",
+      status: e.status ?? "",
+      campaignGroupId: String(e.campaignGroup ?? "").replace("urn:li:sponsoredCampaignGroup:", ""),
+      format: e.format,
+      objectiveType: e.objectiveType,
+    }))
+    .filter((c) => opts.includeArchived || !["ARCHIVED", "REMOVED"].includes(c.status))
+    .filter((c) => !opts.groupId || c.campaignGroupId === opts.groupId);
 }

@@ -26,6 +26,10 @@ import {
   normalizeEntityType,
   changelogPath,
   LIFT_METRICS,
+  listCampaignGroups,
+  listCampaigns,
+  listCreatives,
+  deleteAd,
 } from "@liads/core";
 
 const program = new Command();
@@ -366,6 +370,56 @@ program
     console.log(`  Creatives:      ${res.creativeIds.join(", ") || "(none)"}`);
     console.log(`  Review: ${res.links.campaign}`);
     res.warnings.forEach((w: string) => console.warn(`! ${w}`));
+  });
+
+const campaigns = program.command("campaigns").description("Account structure (campaign groups and ad groups), drafts included");
+campaigns
+  .command("list")
+  .description("List campaign groups and their ad groups, drafts included (unlike report perf)")
+  .option("--group <groupId>", "only ad groups in this campaign group")
+  .option("--all", "include archived/removed entities")
+  .option("--account <accountId>", "ad account id (defaults to config)")
+  .action(async (opts) => {
+    const liads = await createLiads();
+    const accountId = opts.account ?? (await requireDefaultAccountId());
+    const groups = await listCampaignGroups(liads.client, accountId, { includeArchived: opts.all });
+    const list = await listCampaigns(liads.client, accountId, { groupId: opts.group, includeArchived: opts.all });
+    const groupName = new Map(groups.map((g) => [g.id, g.name]));
+    for (const g of groups) {
+      if (opts.group && g.id !== opts.group) continue;
+      console.log(`${g.id}\t${g.status}\t${g.name}`);
+      for (const c of list.filter((c) => c.campaignGroupId === g.id)) {
+        console.log(`  ${c.id}\t${c.status}\t${c.name}`);
+      }
+    }
+    const orphans = list.filter((c) => !groupName.has(c.campaignGroupId));
+    for (const c of orphans) console.log(`? ${c.id}\t${c.status}\t${c.name} (group ${c.campaignGroupId})`);
+  });
+
+const ad = program.command("ad").description("Individual ads (creatives)");
+ad
+  .command("list <campaignId>")
+  .description("List ads in an ad group, drafts included")
+  .option("--account <accountId>", "ad account id (defaults to config)")
+  .action(async (campaignId, opts) => {
+    const liads = await createLiads();
+    const accountId = opts.account ?? (await requireDefaultAccountId());
+    const ads = await listCreatives(liads.client, accountId, campaignId);
+    if (ads.length === 0) {
+      console.log("No ads in this ad group.");
+      return;
+    }
+    for (const a of ads) console.log(`${a.id}\t${a.intendedStatus}\t${a.name || "(unnamed)"}`);
+  });
+ad
+  .command("delete <creativeId>")
+  .description("Delete an ad (creative + its Direct Sponsored Content post)")
+  .option("--account <accountId>", "ad account id (defaults to config)")
+  .action(async (creativeId, opts) => {
+    const liads = await createLiads();
+    const accountId = opts.account ?? (await requireDefaultAccountId());
+    const res = await deleteAd(liads.client, accountId, creativeId);
+    console.log(`Deleted ${res.creativeId}` + (res.postUrn ? ` (post ${res.postUrn}${res.postDeleted ? " deleted" : " left in place"})` : ""));
   });
 
 program.parseAsync().catch((err) => {
