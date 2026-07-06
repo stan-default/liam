@@ -45,6 +45,12 @@ export async function createInlineImageCreative(
     organizationUrn: string;
     commentary: string;
     imageUrn: string;
+    /** Rendered as the ad headline under the image (content.media.title). */
+    headline?: string;
+    /** Click-through destination (contentLandingPage on the DSC post). */
+    clickUri?: string;
+    /** Call-to-action button label, e.g. LEARN_MORE. Only applied when clickUri is set. */
+    callToAction?: string;
     altText?: string;
     intendedStatus?: "DRAFT" | "ACTIVE" | "PAUSED";
     name?: string;
@@ -67,10 +73,21 @@ export async function createInlineImageCreative(
             author: opts.organizationUrn,
             commentary: opts.commentary,
             visibility: "PUBLIC",
+            distribution: { feedDistribution: "NONE" },
             lifecycleState: "PUBLISHED",
             isReshareDisabledByAuthor: false,
+            ...(opts.clickUri
+              ? {
+                  contentLandingPage: opts.clickUri,
+                  contentCallToActionLabel: opts.callToAction ?? "LEARN_MORE",
+                }
+              : {}),
             content: {
-              media: { id: opts.imageUrn, ...(opts.altText ? { altText: opts.altText } : {}) },
+              media: {
+                id: opts.imageUrn,
+                ...(opts.headline ? { title: opts.headline } : {}),
+                ...(opts.altText ? { altText: opts.altText } : {}),
+              },
             },
           },
         },
@@ -78,8 +95,9 @@ export async function createInlineImageCreative(
       },
     },
   });
-  if (!res.restliId) throw new Error("Creative created but no id returned");
-  return { id: res.restliId };
+  const inlineId = res.restliId ?? (res.data as { value?: { creative?: string } } | undefined)?.value?.creative;
+  if (!inlineId) throw new Error("Creative created but no id returned");
+  return { id: inlineId };
 }
 
 /**

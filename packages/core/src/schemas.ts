@@ -108,6 +108,10 @@ export const SponsoredImageCreativeSchema = z.object({
   commentary: z.string().describe("The post body / ad intro text"),
   clickUri: z.string().url(),
   headline: z.string(),
+  callToAction: z
+    .enum(["LEARN_MORE", "APPLY", "DOWNLOAD", "VIEW_QUOTE", "SIGN_UP", "SUBSCRIBE", "REGISTER", "JOIN", "ATTEND", "REQUEST_DEMO", "SEE_MORE"])
+    .default("LEARN_MORE")
+    .describe("Call-to-action button label"),
   /** Local path to the image to upload. Omit to leave a copy-only draft for later. */
   imagePath: z.string().optional(),
   status: z.enum(["DRAFT", "ACTIVE", "PAUSED"]).default("DRAFT"),
