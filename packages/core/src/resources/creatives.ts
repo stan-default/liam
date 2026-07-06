@@ -156,3 +156,49 @@ export async function setCreativeStatus(
     body: { patch: { $set: { intendedStatus } } },
   });
 }
+
+export interface CreativeSummary {
+  id: string;
+  name: string;
+  intendedStatus: string;
+  campaignId: string;
+  postUrn?: string;
+}
+
+/** List creatives (ads) in a campaign, drafts included. */
+export async function listCreatives(
+  client: LinkedInClient,
+  accountId: string,
+  campaignId: string,
+): Promise<CreativeSummary[]> {
+  const res = await client.request({
+    path: `/adAccounts/${accountId}/creatives`,
+    rawQuery: `q=criteria&campaigns=List(${encodeURIComponent(campaignUrn(campaignId))})&pageSize=100`,
+  });
+  const els = (res.data as { elements?: Record<string, unknown>[] }).elements ?? [];
+  return els.map((e) => ({
+    id: String(e.id),
+    name: String(e.name ?? ""),
+    intendedStatus: String(e.intendedStatus ?? ""),
+    campaignId: String(e.campaign ?? "").replace("urn:li:sponsoredCampaign:", ""),
+    postUrn: (e.content as { reference?: string } | undefined)?.reference,
+  }));
+}
+
+export async function getCreative(client: LinkedInClient, accountId: string, creativeUrn: string) {
+  const res = await client.request({
+    path: `/adAccounts/${accountId}/creatives/${encodeURIComponent(creativeUrn)}`,
+  });
+  return res.data as Record<string, unknown>;
+}
+
+export async function deleteCreative(
+  client: LinkedInClient,
+  accountId: string,
+  creativeUrn: string,
+): Promise<void> {
+  await client.request({
+    method: "DELETE",
+    path: `/adAccounts/${accountId}/creatives/${encodeURIComponent(creativeUrn)}`,
+  });
+}

@@ -6,6 +6,7 @@ export const sponsoredAccountUrn = (id: string) => `urn:li:sponsoredAccount:${st
 export const campaignGroupUrn = (id: string) => `urn:li:sponsoredCampaignGroup:${stripPrefix(id)}`;
 export const campaignUrn = (id: string) => `urn:li:sponsoredCampaign:${stripPrefix(id)}`;
 export const adSegmentUrn = (id: string) => `urn:li:adSegment:${stripPrefix(id)}`;
+export const creativeUrn = (id: string) => `urn:li:sponsoredCreative:${stripPrefix(id)}`;
 
 export const idFromUrn = (urn: string) => stripPrefix(urn);
 

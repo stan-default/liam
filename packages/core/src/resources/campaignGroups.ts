@@ -1,4 +1,5 @@
 import type { LinkedInClient } from "../http.js";
+import { searchAll } from "./search.js";
 import type { CampaignGroupInput } from "../schemas.js";
 import { sponsoredAccountUrn } from "../urns.js";
 
@@ -51,4 +52,29 @@ export async function setCampaignGroupStatus(
     headers: { "X-RestLi-Method": "PARTIAL_UPDATE" },
     body: { patch: { $set: { status } } },
   });
+}
+
+export interface CampaignGroupSummary {
+  id: string;
+  name: string;
+  status: string;
+}
+
+/**
+ * List ALL campaign groups on the account, drafts included. Performance
+ * reports only surface entities with analytics rows, which hides zero-spend
+ * drafts — this reads the account structure itself.
+ */
+export async function listCampaignGroups(
+  client: LinkedInClient,
+  accountId: string,
+  opts: { includeArchived?: boolean } = {},
+): Promise<CampaignGroupSummary[]> {
+  const els = await searchAll<{ id: number | string; name?: string; status?: string }>(
+    client,
+    `/adAccounts/${accountId}/adCampaignGroups`,
+  );
+  return els
+    .map((e) => ({ id: String(e.id), name: e.name ?? "", status: e.status ?? "" }))
+    .filter((g) => opts.includeArchived || !["ARCHIVED", "REMOVED"].includes(g.status));
 }

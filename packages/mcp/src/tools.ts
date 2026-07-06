@@ -37,6 +37,10 @@ import {
   recordChange,
   readChanges,
   computeLift,
+  listCampaignGroups,
+  listCampaigns,
+  listCreatives,
+  deleteAd,
 } from "@liads/core";
 
 const AD_ENTITY_TYPE = z
@@ -162,6 +166,59 @@ export function registerTools(server: McpServer): void {
         const liads = await createLiads();
         const acct = accountId ?? (await requireDefaultAccountId());
         return ok(await listConversions(liads.client, acct));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "list_campaigns",
+    "List the account structure: campaign groups (campaigns) and/or their campaigns (ad groups), DRAFTS INCLUDED — unlike performance reports, which only show entities with spend. Pass level=groups for campaign groups only, level=campaigns for ad groups (optionally scoped by groupId), or level=both (default) for the full tree.",
+    {
+      accountId: z.string().optional(),
+      level: z.enum(["groups", "campaigns", "both"]).default("both"),
+      groupId: z.string().optional().describe("Scope campaigns to one campaign group id"),
+      includeArchived: z.boolean().default(false),
+    },
+    async ({ accountId, level, groupId, includeArchived }) => {
+      try {
+        const liads = await createLiads();
+        const acct = accountId ?? (await requireDefaultAccountId());
+        const out: Record<string, unknown> = {};
+        if (level !== "campaigns") out.groups = await listCampaignGroups(liads.client, acct, { includeArchived });
+        if (level !== "groups") out.campaigns = await listCampaigns(liads.client, acct, { groupId, includeArchived });
+        return ok(out);
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "list_ads",
+    "List the creatives (ads) in a campaign (ad group), drafts included: id, name, status, and backing post urn.",
+    { accountId: z.string().optional(), campaignId: z.string() },
+    async ({ accountId, campaignId }) => {
+      try {
+        const liads = await createLiads();
+        const acct = accountId ?? (await requireDefaultAccountId());
+        return ok(await listCreatives(liads.client, acct, campaignId));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.tool(
+    "delete_ad",
+    "Delete an ad: removes the creative and (best-effort) the Direct Sponsored Content post behind it. Accepts a numeric creative id or a full urn:li:sponsoredCreative URN. Use for cleaning up drafts or replacing an ad whose copy must change (Campaign Manager's editor does not reflect post edits — recreate instead).",
+    { accountId: z.string().optional(), creativeId: z.string() },
+    async ({ accountId, creativeId }) => {
+      try {
+        const liads = await createLiads();
+        const acct = accountId ?? (await requireDefaultAccountId());
+        return ok(await deleteAd(liads.client, acct, creativeId));
       } catch (e) {
         return fail(e);
       }
