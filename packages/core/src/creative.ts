@@ -50,6 +50,7 @@ export async function createSponsoredImageDraft(
     callToAction: input.callToAction,
     altText: input.headline,
     intendedStatus: input.status,
+    name: input.name,
   });
 
   return { creativeId: created.id, status: input.status, imageUrn };

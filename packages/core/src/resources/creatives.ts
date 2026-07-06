@@ -69,6 +69,7 @@ export async function createInlineImageCreative(
             adContext: {
               dscAdAccount: sponsoredAccountUrn(opts.accountId),
               dscStatus: "ACTIVE",
+              ...(opts.name ? { dscName: opts.name } : {}),
             },
             author: opts.organizationUrn,
             commentary: opts.commentary,
@@ -82,13 +83,25 @@ export async function createInlineImageCreative(
                   contentCallToActionLabel: opts.callToAction ?? "LEARN_MORE",
                 }
               : {}),
-            content: {
-              media: {
-                id: opts.imageUrn,
-                ...(opts.headline ? { title: opts.headline } : {}),
-                ...(opts.altText ? { altText: opts.altText } : {}),
-              },
-            },
+            // With a click-through URL, Campaign Manager stores single-image ads as
+            // article content (title/thumbnail/source) — its ad editor reads the
+            // Destination URL from content.article.source and won't hydrate the form
+            // from contentLandingPage alone. Without a URL, plain media content.
+            content: opts.clickUri
+              ? {
+                  article: {
+                    title: opts.headline ?? "",
+                    thumbnail: opts.imageUrn,
+                    source: opts.clickUri,
+                  },
+                }
+              : {
+                  media: {
+                    id: opts.imageUrn,
+                    ...(opts.headline ? { title: opts.headline } : {}),
+                    ...(opts.altText ? { altText: opts.altText } : {}),
+                  },
+                },
           },
         },
         ...(opts.name ? { name: opts.name } : {}),

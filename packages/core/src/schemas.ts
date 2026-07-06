@@ -114,6 +114,7 @@ export const SponsoredImageCreativeSchema = z.object({
     .describe("Call-to-action button label"),
   /** Local path to the image to upload. Omit to leave a copy-only draft for later. */
   imagePath: z.string().optional(),
+  name: z.string().optional().describe("Ad name shown in Campaign Manager"),
   status: z.enum(["DRAFT", "ACTIVE", "PAUSED"]).default("DRAFT"),
 });
 export type SponsoredImageCreativeInput = z.infer<typeof SponsoredImageCreativeSchema>;
