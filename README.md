@@ -9,8 +9,24 @@ Manager.
 > Unofficial and not affiliated with or endorsed by LinkedIn.
 
 > Covers creation, matched audiences (including building one straight from Salesforce),
-> conversion selection, and performance reporting/insights. See [ROADMAP.md](./ROADMAP.md)
-> for what's shipped and what's planned next.
+> conversion selection, performance reporting/insights, competitor ad intelligence, and a
+> change journal with before/after lift. See [ROADMAP.md](./ROADMAP.md) for what's shipped
+> and what's planned next.
+
+## What using it looks like
+
+Once the MCP server is connected, you talk to your assistant in plain language:
+
+> "Launch a draft campaign targeting VPs of demand gen at US SaaS companies, $100/day,
+> using the Q3 accounts list from Salesforce."
+
+> "How did the retargeting campaign do last month vs the month before?"
+
+> "What ads is HubSpot running right now, and what offers are they pushing?"
+
+Liam resolves targeting facets, estimates reach, cleans and uploads the audience, creates
+the campaign group, campaign, and creatives as drafts, and reports back the ids. The same
+capabilities are available as `liam` CLI commands for scripted or batch use.
 
 ## Hierarchy mapping (LinkedIn differs from Google/Meta)
 
@@ -27,6 +43,24 @@ Manager.
 - `@liads/mcp` — MCP server (stdio for local; reused by the hosted app). **Primary interface.**
 - `@liads/cli` — the `liam` CLI over the same core, for scripted batch runs.
 - `@liads/web` — Next.js app that hosts the MCP over HTTP on Vercel.
+
+## How it works
+
+Both interfaces are thin layers over the same engine. Every MCP tool and CLI command builds
+a client via `createLiads()` (`core/src/client.ts`), which loads config plus an
+auto-refreshing OAuth token provider, then calls a typed resource module
+(`campaigns.ts`, `audience.ts`, `report.ts`, ...) that wraps LinkedIn's versioned REST API
+(`LinkedIn-Version` pinned in config). Input shapes live as zod schemas in
+`core/src/schemas.ts` and are reused verbatim as the MCP tool input schemas, so the CLI and
+MCP can never drift apart.
+
+The draft-only safety rule is enforced at creation: campaign groups, campaigns, and
+creatives are all written with `DRAFT` status, and there is deliberately no "activate"
+tool or command. Every write also passes through one HTTP chokepoint that appends to a
+local change journal (`~/.liads/changelog.jsonl`) for later lift analysis.
+
+[AGENTS.md](./AGENTS.md) has the full architecture notes and the LinkedIn API gotchas
+(restli encoding, required fields, DMP audience flow) learned from live testing.
 
 ## Prerequisites (everyone needs their own LinkedIn app)
 
@@ -88,7 +122,11 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
 - **Conversions:** `list_conversions` (select an existing insight-tag conversion to track).
   `create_campaign` and `launch_from_brief` accept `conversionIds` or `conversionName`, and
   fall back to `defaultConversionName` from config.
-- **Campaigns:** `create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`
+- **Campaigns:** `create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`;
+  `list_campaigns` (the account structure — campaign groups and their ad groups, **drafts
+  included**, unlike reporting which only shows entities with spend), `list_ads`, `delete_ad`
+  (removes the creative and best-effort its Direct Sponsored Content post). LinkedIn's editor
+  ignores post edits on a live ad, so to change copy you recreate: `delete_ad` + `create_image_ad`.
 - **Orchestrator:** `launch_from_brief` (audience + group + campaign + draft creatives in one call)
 - **Reporting:** `performance_summary` (account rollup + top/bottom + flags), `get_performance`
   (per-entity KPIs at any level), `performance_trend` (weekly/monthly with deltas). KPIs: CTR,
@@ -131,10 +169,16 @@ liam audience upload -n <name> -f <csv> --dry-run   # preview the cleaned CSV, n
 liam audience from-salesforce -n <name> -q "<SOQL>"   # Salesforce query -> matched audience
 liam audience status <segmentId>        # matching status + resolved size
 liam conversions list                   # account conversions (pick one to track)
+liam campaigns list [--group <id>] [--all]   # campaign groups + ad groups, drafts included
+liam ad list <campaignId>               # ads in an ad group (id, status, name), drafts included
+liam ad delete <creativeId>             # delete an ad (creative + its DSC post)
 liam report summary [-p <period>]       # account rollup: totals, top performers, flags
 liam report perf <level> [--parent <id>] # per-entity KPI rows
 liam report trend <level> <id> [-b weekly|monthly]  # trend with deltas
 liam launch --brief <brief.json>        # audience + group + campaign + draft creatives
+liam competitor ads <advertiser>        # any company's ads from the public Ad Library
+                                        #   <advertiser> = name, company id, or company URL
+                                        #   -k <keyword> -c <countries> -e auto|api|scraper -m <max> --json
 liam changelog list [-t <type>] [-i <id>]           # recorded ad changes, newest first
 liam changelog add -t <type> -i <id> -f <field> --after <v> [-l <label>]   # log a change made elsewhere
 liam lift <level> <id> [-w <days>]      # before-vs-after performance for each recorded change
