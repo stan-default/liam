@@ -60,6 +60,7 @@ export async function scanCompetitorAds(opts: CompetitorAdsOptions): Promise<Com
         advertiser: opts.advertiser,
         countries: opts.countries,
         max: opts.max,
+        onProgress: progress,
       });
       const ads = api.ads as AdLibraryAd[];
 

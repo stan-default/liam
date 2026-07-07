@@ -296,7 +296,12 @@ export async function fetchAdCopyByIds(
             waitUntil: "domcontentloaded",
             timeout: 45000,
           });
-          await dp.waitForTimeout(1800);
+          // The creative hydrates client-side; wait for the copy/preview to
+          // appear rather than a fixed delay (a fixed wait missed slow pages).
+          await dp
+            .waitForSelector(".commentary__content, [data-creative-type]", { timeout: 9000 })
+            .catch(() => {});
+          await dp.waitForTimeout(400);
           const copy = (await dp.evaluate(extractCopyInPage)) as AdCopy;
           if (copy.commentary || copy.imageUrl || copy.headline) out.set(id, copy);
         } catch {
