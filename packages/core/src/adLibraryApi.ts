@@ -40,7 +40,16 @@ export interface AdLibraryApiOptions {
   countries?: string[];
   /** Max ads to collect across pages (default 50). */
   max?: number;
+  /** Delay between pages to respect the per-minute rate limit (default 2200ms). */
+  pageDelayMs?: number;
+  onProgress?: (m: string) => void;
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const isThrottle = (e: unknown): boolean => {
+  const err = e as { status?: number; message?: string };
+  return err?.status === 429 || /throttl/i.test(err?.message ?? "");
+};
 
 /** An ad enriched with the raw API element it was normalized from. */
 export type AdLibraryApiAd = AdLibraryAd & { raw?: unknown };
@@ -154,10 +163,13 @@ export async function searchAdLibraryApi(
     );
   }
   const max = opts.max ?? 50;
+  const pageDelayMs = opts.pageDelayMs ?? 2200;
+  const progress = opts.onProgress ?? (() => {});
   const ads: AdLibraryApiAd[] = [];
   let start = 0;
   let totalReported: number | undefined;
-  const pageSize = Math.min(100, max);
+  // The criteria finder caps `count` at 25 per page; paginate via `start`.
+  const pageSize = Math.min(25, max);
 
   while (ads.length < max) {
     const query: Record<string, string | number | undefined> = { q: "criteria", count: pageSize, start };
@@ -166,20 +178,30 @@ export async function searchAdLibraryApi(
     if (opts.countries?.length) query.countries = countryList(opts.countries);
 
     let res;
-    try {
-      res = await client.request<{
-        elements?: Record<string, unknown>[];
-        paging?: { total?: number };
-      }>({ path: "/adLibrary", query });
-    } catch (e) {
-      const err = e as { status?: number; message?: string };
-      if (err.status === 403) {
-        throw new AdLibraryAccessError(
-          "The Ad Library API is not provisioned for this app. Request the 'LinkedIn Ad Library' product " +
-            "in the Developer Portal (Products tab). " + (err.message ?? ""),
-        );
+    // The Ad Library API is rate-limited per minute. On a throttle, wait out the
+    // window and retry the same page (a few times) rather than failing the pull.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        res = await client.request<{
+          elements?: Record<string, unknown>[];
+          paging?: { total?: number };
+        }>({ path: "/adLibrary", query });
+        break;
+      } catch (e) {
+        const err = e as { status?: number; message?: string };
+        if (err.status === 403) {
+          throw new AdLibraryAccessError(
+            "The Ad Library API is not provisioned for this app. Request the 'LinkedIn Ad Library' product " +
+              "in the Developer Portal (Products tab). " + (err.message ?? ""),
+          );
+        }
+        if (isThrottle(e) && attempt < 5) {
+          progress(`Rate limited; waiting 60s before retrying (have ${ads.length}/${max})...`);
+          await sleep(60_000);
+          continue;
+        }
+        throw e;
       }
-      throw e;
     }
 
     if (totalReported === undefined && typeof res.data.paging?.total === "number") {
@@ -193,6 +215,8 @@ export async function searchAdLibraryApi(
     }
     if (elements.length < pageSize) break;
     start += pageSize;
+    progress(`Fetched ${ads.length}/${Math.min(max, totalReported ?? max)} ads...`);
+    if (pageDelayMs) await sleep(pageDelayMs);
   }
 
   return { fetched: ads.length, totalReported, ads };

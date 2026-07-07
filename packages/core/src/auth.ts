@@ -15,8 +15,8 @@ import type { TokenProvider } from "./http.js";
 const AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization";
 const TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken";
 
-/** Scopes for ad management. r_ads_reporting is for Phase 2 analytics. */
-export const DEFAULT_SCOPES = ["rw_ads", "r_ads_reporting"];
+/** Scopes for ad management. r_ads_reporting is for Phase 2 analytics. rw_conversions is for the Conversions API. */
+export const DEFAULT_SCOPES = ["rw_ads", "r_ads_reporting", "rw_conversions"];
 
 const CALLBACK_PORT = 53682;
 
