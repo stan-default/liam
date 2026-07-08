@@ -112,15 +112,6 @@ body::after {
   display: flex;
   align-items: flex-end;
 }
-.caret {
-  display: inline-block;
-  width: clamp(20px, 5vw, 56px);
-  height: clamp(64px, 17vw, 200px);
-  background: var(--amber);
-  margin-left: clamp(10px, 2vw, 22px);
-  margin-bottom: clamp(8px, 2vw, 24px);
-  animation: blink 1.1s steps(1) infinite;
-}
 .tagline {
   margin-top: 30px;
   max-width: 60ch;
@@ -402,16 +393,11 @@ body::after {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
-}
-
 @media (max-width: 560px) {
   .topbar { font-size: 10px; letter-spacing: 0.12em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; opacity: 1; transform: none; }
-  .dot, .caret { animation: none; }
+  .dot { animation: none; }
 }

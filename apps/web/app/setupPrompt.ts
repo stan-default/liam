@@ -46,12 +46,27 @@ export const CLI_SETUP_PROMPT = `${INTRO}
 8. Show me a first session: "liam report summary -p last_30_days" and
    "liam targeting search titles" with a title I care about.${OUTRO}`;
 
-export const MCP_SETUP_PROMPT = `${INTRO}
-7. Register the MCP server:
+export const MCP_SETUP_PROMPT = `You are helping me connect Liam, an open-source LinkedIn Ads Manager
+(https://github.com/stan-default/liam), to Claude as an MCP server. Everything
+it creates on LinkedIn is a draft, so nothing spends money until I activate it
+myself in Campaign Manager.
+
+Work one step at a time, run commands for me where you can, and wait for my
+confirmation before moving on.
+
+1. Register the MCP server:
    - In Claude Code: claude mcp add liam -- node <abs repo path>/packages/mcp/dist/index.js
-   - For Claude Desktop or another MCP client, print the JSON I need to add
-     under mcpServers in its config ({"command": "node", "args":
-     ["<abs repo path>/packages/mcp/dist/index.js"]}) and tell me where that
-     config file lives on my machine.
-8. Confirm the tools load, then show me one read-only call working, for example
-   list_ad_accounts or a last_30_days performance summary.${OUTRO}`;
+   - For Claude Desktop or another MCP client, add {"command": "node", "args":
+     ["<abs repo path>/packages/mcp/dist/index.js"]} under mcpServers in its
+     config, and tell me where that config file lives on my machine.
+2. Confirm the liam tools load, then show me one read-only call working, for
+   example list_ad_accounts or a last_30_days performance summary.
+
+Only if step 1 has nothing to point at yet, do the one-time install first:
+clone https://github.com/stan-default/liam, run "pnpm install" and
+"pnpm -r build", put the clientId and clientSecret from my LinkedIn developer
+app (Advertising API product, redirect URL http://localhost:53682/callback)
+in ~/.liads/config.json, then run "node packages/cli/dist/index.js auth login"
+and verify with "node packages/cli/dist/index.js accounts list".
+
+If a step fails, show me the exact error and fix it with me before moving on.`;

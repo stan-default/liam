@@ -96,9 +96,7 @@ export default function Home() {
 
       <main>
         <section className="hero">
-          <h1 className="wordmark reveal d1">
-            LIAM<span className="caret" aria-hidden />
-          </h1>
+          <h1 className="wordmark reveal d1">LIAM</h1>
 
           <p className="tagline reveal d2">
             The <em>LinkedIn Ads Manager</em> you talk to. Describe the campaign in plain language
@@ -161,8 +159,8 @@ export default function Home() {
             <div className="col">
               <h3>Talk to it over MCP</h3>
               <p className="note">
-                For plain-language campaign work in Claude. Ends with the server registered in
-                Claude Code, plus the config for Claude Desktop or any MCP client.
+                Adds Liam as an MCP server in Claude Code, Claude Desktop, or any MCP client.
+                The one-time install runs only if it is not on your machine yet.
               </p>
               <div className="promptcard">
                 <div className="prompthead">
