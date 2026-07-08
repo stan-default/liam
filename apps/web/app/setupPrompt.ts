@@ -1,9 +1,10 @@
 /**
- * The paste-in setup prompt shown on the landing page. Keep in sync with the
- * copy in README.md ("Or paste this prompt and let your assistant do the setup").
+ * The paste-in setup prompts shown on the landing page. Both share the same
+ * core steps; only the last mile differs (CLI usage vs registering the MCP
+ * server). README.md carries a combined version of the same walkthrough.
  */
-export const SETUP_PROMPT = `You are helping me set up Liam, an open-source LinkedIn Ad Manager from
-https://github.com/stan-default/liam. It runs locally as an MCP server and a CLI.
+const INTRO = `You are helping me set up Liam, an open-source LinkedIn Ads Manager from
+https://github.com/stan-default/liam. It runs locally as a CLI and an MCP server.
 Everything it creates on LinkedIn is a draft, so nothing spends money until I
 activate it myself in Campaign Manager.
 
@@ -33,12 +34,39 @@ before moving to the next step.
 6. Verify with "node packages/cli/dist/index.js accounts list". If no accounts
    show up, remind me to map my ad account in the Developer Portal under
    Products > Advertising API > View Ad Accounts. Then set my account id as
-   "defaultAccountId" in ~/.liads/config.json.
-7. Register the MCP server with the assistant I use:
-   - Claude Code: claude mcp add liam -- node <abs repo path>/packages/mcp/dist/index.js
-   - Claude Desktop or another client: add {"command": "node", "args":
-     ["<abs repo path>/packages/mcp/dist/index.js"]} under mcpServers in its config.
-8. Confirm the tools load, then show me one read-only call working, for example
-   list_ad_accounts or a last_30_days performance summary.
+   "defaultAccountId" in ~/.liads/config.json.`;
+
+const OUTRO = `
 
 If any step fails, show me the exact error and fix it with me before moving on.`;
+
+export const CLI_SETUP_PROMPT = `${INTRO}
+7. Link the CLI globally with "cd packages/cli && pnpm link --global" so I can
+   run "liam" from anywhere, and confirm "liam accounts list" works.
+8. Show me a first session: "liam report summary -p last_30_days" and
+   "liam targeting search titles" with a title I care about.${OUTRO}`;
+
+export const MCP_SETUP_PROMPT = `You are helping me connect Liam, an open-source LinkedIn Ads Manager
+(https://github.com/stan-default/liam), to Claude as an MCP server. Everything
+it creates on LinkedIn is a draft, so nothing spends money until I activate it
+myself in Campaign Manager.
+
+Work one step at a time, run commands for me where you can, and wait for my
+confirmation before moving on.
+
+1. Register the MCP server:
+   - In Claude Code: claude mcp add liam -- node <abs repo path>/packages/mcp/dist/index.js
+   - For Claude Desktop or another MCP client, add {"command": "node", "args":
+     ["<abs repo path>/packages/mcp/dist/index.js"]} under mcpServers in its
+     config, and tell me where that config file lives on my machine.
+2. Confirm the liam tools load, then show me one read-only call working, for
+   example list_ad_accounts or a last_30_days performance summary.
+
+Only if step 1 has nothing to point at yet, do the one-time install first:
+clone https://github.com/stan-default/liam, run "pnpm install" and
+"pnpm -r build", put the clientId and clientSecret from my LinkedIn developer
+app (Advertising API product, redirect URL http://localhost:53682/callback)
+in ~/.liads/config.json, then run "node packages/cli/dist/index.js auth login"
+and verify with "node packages/cli/dist/index.js accounts list".
+
+If a step fails, show me the exact error and fix it with me before moving on.`;

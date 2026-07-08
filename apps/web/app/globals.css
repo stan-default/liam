@@ -112,15 +112,6 @@ body::after {
   display: flex;
   align-items: flex-end;
 }
-.caret {
-  display: inline-block;
-  width: clamp(20px, 5vw, 56px);
-  height: clamp(64px, 17vw, 200px);
-  background: var(--amber);
-  margin-left: clamp(10px, 2vw, 22px);
-  margin-bottom: clamp(8px, 2vw, 24px);
-  animation: blink 1.1s steps(1) infinite;
-}
 .tagline {
   margin-top: 30px;
   max-width: 60ch;
@@ -266,11 +257,78 @@ body::after {
 }
 
 /* setup prompt */
-.promptbox {
+.code.promptbox {
   max-height: 420px;
   overflow-y: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+.cols .code.promptbox {
+  max-height: 320px;
+}
+.prompthead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 76px 8px 14px;
+  background: #0e0e0c;
+  border: 1px solid var(--amber-dim);
+  border-bottom: none;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.promptcard .code {
+  padding-right: 18px;
+}
+
+/* faq */
+.faq {
+  border: 1px solid var(--amber-dim);
+  background: var(--panel);
+}
+.faq details {
+  border-bottom: 1px solid var(--amber-dim);
+}
+.faq details:last-child {
+  border-bottom: none;
+}
+.faq summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  transition: background 0.18s;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary::after {
+  content: "+";
+  color: var(--amber);
+  flex: none;
+  font-weight: 400;
+}
+.faq details[open] summary::after {
+  content: "\2212";
+}
+.faq summary:hover {
+  background: #171613;
+}
+.faq .a {
+  padding: 2px 22px 20px;
+  max-width: 72ch;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--muted);
 }
 
 .code {
@@ -335,16 +393,11 @@ body::after {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
-}
-
 @media (max-width: 560px) {
   .topbar { font-size: 10px; letter-spacing: 0.12em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; opacity: 1; transform: none; }
-  .dot, .caret { animation: none; }
+  .dot { animation: none; }
 }
