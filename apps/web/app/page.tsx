@@ -54,7 +54,7 @@ const USE_CASES: Array<{ q: string; note: string }> = [
     note: "LinkedIn ignores edits to a live ad's post, so Liam recreates it as a fresh draft.",
   },
   {
-    q: "Build last month's report: spend, CTR, cost per conversion, and the three ads I should kill.",
+    q: "Build last month's report: spend, CTR, cost per conversion.",
     note: "Pulls the month's numbers and names the underperformers in one pass.",
   },
 ];
