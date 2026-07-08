@@ -17,9 +17,9 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata = {
-  title: "Liam · LinkedIn Ad Manager",
+  title: "Liam · LinkedIn Ads Manager",
   description:
-    "Liam creates LinkedIn ad campaigns by talking to Claude, or from a CLI. An MCP server and CLI for go-to-market teams. Everything ships as a draft.",
+    "The LinkedIn Ads Manager you talk to. Describe the campaign and Liam drafts the audience, ad groups, and ads, from Claude over MCP or a CLI. Nothing spends until you activate it.",
 };
 
 export const viewport = {
