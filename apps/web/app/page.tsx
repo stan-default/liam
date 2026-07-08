@@ -54,27 +54,8 @@ const USE_CASES: Array<{ q: string; note: string }> = [
     note: "LinkedIn ignores edits to a live ad's post, so Liam recreates it as a fresh draft.",
   },
   {
-    q: "Did the new headline actually help?",
-    note: "Every change is journaled; lift compares performance before and after.",
-  },
-];
-
-const LOOPS: Array<{ when: string; task: string }> = [
-  {
-    when: "MON 09:00",
-    task: "Pull last week's performance summary, compare it to the week before, and flag anything that moved more than 20%.",
-  },
-  {
-    when: "FRI 16:00",
-    task: "Check what new ads our top three competitors shipped this week and summarize the angles.",
-  },
-  {
-    when: "EVERY 4H",
-    task: "Check the audience match status and tell me when it clears 300 members.",
-  },
-  {
-    when: "1ST OF MONTH",
-    task: "Build last month's report: spend, CTR, cost per conversion, and the three ads I should kill.",
+    q: "Build last month's report: spend, CTR, cost per conversion, and the three ads I should kill.",
+    note: "Pulls the month's numbers and names the underperformers in one pass.",
   },
 ];
 
@@ -125,27 +106,6 @@ export default function Home() {
                 <p className="note">{u.note}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section id="loops" className="section">
-          <p className="kicker">Loops</p>
-          <h2>Put it on a schedule.</h2>
-          <p className="sub">
-            Liam has no scheduler of its own, and it does not need one: the client you drive it
-            from does. Tell Claude to run a prompt on a schedule, or put the CLI in cron.
-          </p>
-          <div className="loops">
-            {LOOPS.map((l) => (
-              <div className="loop" key={l.when}>
-                <span className="when">{l.when}</span>
-                <span className="task">&quot;{l.task}&quot;</span>
-              </div>
-            ))}
-            <div className="loop">
-              <span className="when">CRON</span>
-              <span className="task cron">0 9 * * 1 liam report summary -p last_7_days</span>
-            </div>
           </div>
         </section>
 

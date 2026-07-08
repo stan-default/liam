@@ -240,37 +240,6 @@ body::after {
   color: var(--muted);
 }
 
-/* loops */
-.loops {
-  border: 1px solid var(--amber-dim);
-  background: var(--panel);
-}
-.loop {
-  display: flex;
-  gap: 20px;
-  padding: 16px 22px;
-  border-bottom: 1px solid var(--amber-dim);
-  align-items: baseline;
-}
-.loop:last-child {
-  border-bottom: none;
-}
-.loop .when {
-  flex: 0 0 110px;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: var(--amber);
-  white-space: nowrap;
-}
-.loop .task {
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: var(--muted);
-}
-.loop .task.cron {
-  color: var(--ink);
-}
-
 /* get started columns */
 .cols {
   display: grid;
