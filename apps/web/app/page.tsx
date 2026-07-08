@@ -83,7 +83,7 @@ export default function Home() {
     <div className="wrap">
       <header className="topbar reveal d1">
         <span>
-          <b>LIAM</b> · LINKEDIN AD MANAGER
+          <b>LIAM</b> · LINKEDIN ADS MANAGER
         </span>
         <span className="status">
           <span className="dot" aria-hidden />
@@ -98,9 +98,9 @@ export default function Home() {
           </h1>
 
           <p className="tagline reveal d2">
-            Your <em>LinkedIn ad manager</em>. Describe the campaign in plain language and Liam
-            drafts the <em>audience</em>, <em>ad groups</em>, and <em>ads</em> for you. Talk to it
-            from <em>Claude over MCP</em>, or drive it from a <em>CLI</em>.{" "}
+            The <em>LinkedIn Ads Manager</em> you talk to. Describe the campaign in plain language
+            and Liam drafts the <em>audience</em>, the <em>ad groups</em>, and the <em>ads</em>.
+            Works from <em>Claude over MCP</em> or a <em>CLI</em>.{" "}
             <span className="hot">Nothing spends until you activate it.</span>
           </p>
 
