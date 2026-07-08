@@ -100,8 +100,7 @@ export default function Home() {
           <p className="tagline reveal d2">
             The <em>LinkedIn Ads Manager</em> you talk to. Describe the campaign in plain language
             and Liam drafts the <em>audience</em>, the <em>ad groups</em>, and the <em>ads</em>.
-            Works from <em>Claude over MCP</em> or a <em>CLI</em>.{" "}
-            <span className="hot">Nothing spends until you activate it.</span>
+            Works from <em>Claude over MCP</em> or a <em>CLI</em>.
           </p>
 
           <p className="heroLinks reveal d3">
