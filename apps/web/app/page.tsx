@@ -1,24 +1,46 @@
 import { CopyButton } from "./CopyButton";
-import { SETUP_PROMPT } from "./setupPrompt";
+import { CLI_SETUP_PROMPT, MCP_SETUP_PROMPT } from "./setupPrompt";
 
 const REPO = "https://github.com/stan-default/liam";
 
-const CLI_CMD = `git clone ${REPO}.git liam
-cd liam
-pnpm install && pnpm -r build
-node packages/cli/dist/index.js auth login
-node packages/cli/dist/index.js accounts list`;
-
-const MCP_CMD = "claude mcp add liam -- node /abs/path/liam/packages/mcp/dist/index.js";
-
-const MCP_JSON = `{
-  "mcpServers": {
-    "liam": {
-      "command": "node",
-      "args": ["/abs/path/liam/packages/mcp/dist/index.js"]
-    }
-  }
-}`;
+const FAQ: Array<{ q: string; a: string }> = [
+  {
+    q: "Can it spend money without me?",
+    a: "No. Everything Liam creates is written to LinkedIn as a draft, and there is deliberately no activate command or tool anywhere in the codebase. A campaign starts spending only when you switch it on yourself in Campaign Manager.",
+  },
+  {
+    q: "What permissions does it need?",
+    a: "Liam runs against your own LinkedIn developer app with the Advertising API product. At login it asks for four OAuth scopes: rw_ads to create and edit campaigns, r_ads_reporting to read performance, rw_conversions for conversion tracking, and w_organization_social so image ads can create the post owned by your LinkedIn Page. Two optional products unlock more: Audiences for CSV list uploads and Ad Library for competitor metadata.",
+  },
+  {
+    q: "How does it work?",
+    a: "A CLI and an MCP server sit on top of the same typed client for LinkedIn's Marketing API. You say what you want, your assistant calls the matching tools, and LinkedIn returns the ids. Every change Liam makes is journaled to a local file so you can measure the lift of any edit later.",
+  },
+  {
+    q: "How do I get started?",
+    a: "Copy one of the prompts above into Claude Code. It installs the prerequisites, walks you through creating the LinkedIn app, logs you in through your browser, and verifies everything with a read-only call. The hands-on part takes about 15 minutes; LinkedIn's approval of the Advertising API product can add a day or two of waiting.",
+  },
+  {
+    q: "Do I need to be a developer?",
+    a: "You need a terminal with Claude Code installed, and the setup prompt does the rest. If you can paste a block of text and click approve in your browser, you can finish the setup.",
+  },
+  {
+    q: "Where do my credentials live?",
+    a: "In a ~/.liads folder on your own machine, with file permissions locked to your user. Tokens go to LinkedIn's API and nowhere else. If you deploy the optional hosted mode, the credentials live in your own Vercel project's environment variables.",
+  },
+  {
+    q: "What does it cost?",
+    a: "Nothing. Liam is open source under the MIT license, and there is no hosted service to subscribe to. The only money involved is what you choose to spend on LinkedIn after you activate a campaign.",
+  },
+  {
+    q: "Does it only work with Claude?",
+    a: "It works with any MCP client: Claude Code, Claude Desktop, Cursor, and the rest. The CLI needs no assistant at all, so you can script it, pipe it, or put a weekly report in cron.",
+  },
+  {
+    q: "Is this an official LinkedIn product?",
+    a: "No. Liam is unofficial and has no affiliation with or endorsement from LinkedIn. It talks to LinkedIn's documented Marketing API through the developer app you create and control.",
+  },
+];
 
 const USE_CASES: Array<{ q: string; note: string }> = [
   {
@@ -87,6 +109,7 @@ export default function Home() {
           <p className="heroLinks reveal d3">
             <a href="#get-started">Get started ↓</a>
             <a href="#use-cases">What it can do ↓</a>
+            <a href="#faq">FAQ ↓</a>
             <a href={REPO} target="_blank" rel="noreferrer">
               GitHub ↗
             </a>
@@ -111,71 +134,68 @@ export default function Home() {
 
         <section id="get-started" className="section">
           <p className="kicker">Get started</p>
-          <h2>Bring your own LinkedIn app.</h2>
+          <h2>One prompt sets everything up.</h2>
           <p className="sub">
-            Liam runs against your own LinkedIn developer app, so your credentials and your ad
-            account stay yours. Create an app at{" "}
-            <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">
-              linkedin.com/developers/apps
-            </a>
-            , request the <em>Advertising API</em> product (add <em>Audiences</em> for CSV uploads
-            and <em>Ad Library</em> for competitor metadata), and add{" "}
-            <code>http://localhost:53682/callback</code> as a redirect URL. Login asks for the{" "}
-            <code>rw_ads</code>, <code>r_ads_reporting</code>, <code>rw_conversions</code>, and{" "}
-            <code>w_organization_social</code> scopes.
+            Pick how you want to use Liam, copy the prompt, and paste it into Claude Code. It
+            checks your machine, helps you create your own LinkedIn developer app, logs you in,
+            and verifies the connection, one step at a time.
           </p>
 
           <div className="cols">
             <div className="col">
-              <h3>1 · The CLI</h3>
+              <h3>Use it as a CLI</h3>
               <p className="note">
-                Clone, build, log in through your browser, and verify. Then every capability is a{" "}
-                <code>liam</code> command.
+                For scripted and batch work in the terminal. Ends with a global <code>liam</code>{" "}
+                command and your first report.
               </p>
-              <pre className="code">
-                <CopyButton text={CLI_CMD} />
-                {CLI_CMD}
-              </pre>
+              <div className="promptcard">
+                <div className="prompthead">
+                  <span>setup prompt · paste into claude code</span>
+                  <CopyButton text={CLI_SETUP_PROMPT} />
+                </div>
+                <pre className="code promptbox" tabIndex={0}>
+                  {CLI_SETUP_PROMPT}
+                </pre>
+              </div>
             </div>
             <div className="col">
-              <h3>2 · MCP</h3>
+              <h3>Talk to it over MCP</h3>
               <p className="note">
-                Same setup, then register the server so Claude can use it. One line in Claude
-                Code:
+                For plain-language campaign work in Claude. Ends with the server registered in
+                Claude Code, plus the config for Claude Desktop or any MCP client.
               </p>
-              <pre className="code">
-                <CopyButton text={MCP_CMD} />
-                {MCP_CMD}
-              </pre>
-              <p className="note">Claude Desktop, Cursor, or any MCP client:</p>
-              <pre className="code">
-                <CopyButton text={MCP_JSON} />
-                {MCP_JSON}
-              </pre>
+              <div className="promptcard">
+                <div className="prompthead">
+                  <span>setup prompt · paste into claude code</span>
+                  <CopyButton text={MCP_SETUP_PROMPT} />
+                </div>
+                <pre className="code promptbox" tabIndex={0}>
+                  {MCP_SETUP_PROMPT}
+                </pre>
+              </div>
             </div>
           </div>
 
           <p className="note fine">
-            Want it in the cloud? The repo ships a single-tenant hosted mode for Vercel. See the{" "}
+            Prefer to do it by hand, or want the single-tenant hosted mode on Vercel? The{" "}
             <a href={`${REPO}#get-started`} target="_blank" rel="noreferrer">
               README
             </a>{" "}
-            for the full walkthrough, permissions table, and hosted setup.
+            has the full manual walkthrough and the permissions table.
           </p>
         </section>
 
-        <section id="setup-prompt" className="section">
-          <p className="kicker">One prompt setup</p>
-          <h2>Or paste this into Claude.</h2>
-          <p className="sub">
-            Copy the whole block into Claude (or any assistant with terminal access) and it walks
-            you through everything: prerequisites, the LinkedIn app, login, and connecting the
-            MCP server.
-          </p>
-          <pre className="code promptbox" tabIndex={0}>
-            <CopyButton text={SETUP_PROMPT} />
-            {SETUP_PROMPT}
-          </pre>
+        <section id="faq" className="section">
+          <p className="kicker">FAQ</p>
+          <h2>The questions worth asking first.</h2>
+          <div className="faq">
+            {FAQ.map((f) => (
+              <details key={f.q}>
+                <summary>{f.q}</summary>
+                <p className="a">{f.a}</p>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
 
