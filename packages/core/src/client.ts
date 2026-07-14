@@ -1,4 +1,4 @@
-import { loadConfig } from "./config.js";
+import { activeRequestCredentials, loadConfig } from "./config.js";
 import { LinkedInClient, type MutationHook, type TokenProvider } from "./http.js";
 import { createTokenProvider } from "./auth.js";
 import { recordMutation } from "./changelog.js";
@@ -17,9 +17,10 @@ export async function createLiads(): Promise<Liads> {
   const config = await loadConfig();
   const getToken = await createTokenProvider();
   // Auto-journal every change to the local changelog for later lift comparison.
-  // Disabled on hosted deploys (read-only FS, identified by LIADS_REFRESH_TOKEN)
-  // and whenever LIADS_NO_CHANGELOG is set.
-  const journaling = !process.env.LIADS_REFRESH_TOKEN && !process.env.LIADS_NO_CHANGELOG;
+  // Disabled on hosted deploys (read-only FS: LIADS_REFRESH_TOKEN env or
+  // per-request header credentials) and whenever LIADS_NO_CHANGELOG is set.
+  const journaling =
+    !activeRequestCredentials() && !process.env.LIADS_REFRESH_TOKEN && !process.env.LIADS_NO_CHANGELOG;
   const onMutation: MutationHook | undefined = journaling ? recordMutation : undefined;
   const client = new LinkedInClient(config, getToken, onMutation);
   return { client, getToken };

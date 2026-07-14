@@ -1,5 +1,5 @@
 import { CopyButton } from "./CopyButton";
-import { CLI_SETUP_PROMPT, MCP_SETUP_PROMPT } from "./setupPrompt";
+import { CLI_SETUP_PROMPT, HOSTED_MCP_SETUP_PROMPT, MCP_SETUP_PROMPT } from "./setupPrompt";
 
 const REPO = "https://github.com/stan-default/liam";
 
@@ -26,7 +26,11 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "Where do my credentials live?",
-    a: "In a ~/.liads folder on your own machine, with file permissions locked to your user. Tokens go to LinkedIn's API and nowhere else. If you deploy the optional hosted mode, the credentials live in your own Vercel project's environment variables.",
+    a: "In a ~/.liads folder on your own machine, with file permissions locked to your user. Tokens go to LinkedIn's API and nowhere else. If you self-host the hosted mode, the credentials live in your own Vercel project's environment variables. If you connect to the shared hosted endpoint, they live in your MCP client's config as headers and ride along on each call; they are used in memory only and never stored on the server, but self-host if you would rather they never leave your infrastructure.",
+  },
+  {
+    q: "Can I use it without installing anything?",
+    a: "Almost. The hosted MCP endpoint lets any MCP client that supports custom headers connect with your own LinkedIn app credentials, so there is nothing to deploy or keep running. You still do one short local run to mint your refresh token (LinkedIn's OAuth consent has to happen in your browser); after that, the connection is just a URL plus headers. A skill or system prompt with your account defaults sits on top and the hosted tools do the rest.",
   },
   {
     q: "What does it cost?",
@@ -172,14 +176,33 @@ export default function Home() {
                 </pre>
               </div>
             </div>
+            <div className="col">
+              <h3>Use the hosted MCP</h3>
+              <p className="note">
+                Connect to the hosted endpoint with your own LinkedIn app credentials as
+                headers. Every call runs against your ad account; nothing to deploy or keep
+                running.
+              </p>
+              <div className="promptcard">
+                <div className="prompthead">
+                  <span>setup prompt · paste into claude code</span>
+                  <CopyButton text={HOSTED_MCP_SETUP_PROMPT} />
+                </div>
+                <pre className="code promptbox" tabIndex={0}>
+                  {HOSTED_MCP_SETUP_PROMPT}
+                </pre>
+              </div>
+            </div>
           </div>
 
           <p className="note fine">
-            Prefer to do it by hand, or want the single-tenant hosted mode on Vercel? The{" "}
+            Prefer to do it by hand, or want to self-host the hosted mode on your own Vercel
+            account? The{" "}
             <a href={`${REPO}#install`} target="_blank" rel="noreferrer">
               README
             </a>{" "}
-            has the full manual walkthrough and the permissions table.
+            has the full manual walkthrough, the hosted header reference, and the permissions
+            table.
           </p>
         </section>
 
