@@ -1,23 +1,40 @@
 # Liam skills
 
-Portable analysis playbooks that run on top of Liam. Each skill is a `SKILL.md` an
-agent (Claude Code personal skills, or anything that reads the same format) can load,
-and each encodes a full methodology: what to pull, how to judge it, significance
-floors, the caveats to state, and a fixed report format. They work over the Liam MCP
-tools when registered, and fall back to the `liam` CLI, so they run anywhere Liam is
+Portable playbooks that run on top of Liam. Each skill is a `SKILL.md` an agent
+(Claude Code personal skills, or anything that reads the same format) can load, and
+each encodes a full methodology: what to pull, how to judge it, significance floors,
+the caveats to state, and a fixed report format. They work over the Liam MCP tools
+when registered, and fall back to the `liam` CLI, so they run anywhere Liam is
 installed and authenticated.
 
-All skills are read-only against your ad account (Liam itself only ever creates
-drafts; nothing here activates, pauses, or spends).
+The analysis and monitoring skills are read-only against your ad account. The two
+that write (liam-launch, and liam-experiments when it recreates an ad) create drafts
+only, after explicit confirmation; Liam has no activate capability at all.
+
+**Analyze**
 
 | Skill | Ask it | What you get |
 | --- | --- | --- |
 | `liam-spend` | "Analyze my spend" | Where budget goes, concentration, a summed wasted-spend figure, reallocation moves |
 | `liam-performance` | "How are my ads doing?" | Full review: scoreboard, winners, losers, fatigue, scale/pause/watch actions |
 | `liam-leads` | "Which ads drive leads? Which don't?" | Drivers table, pause list with dollars burned, converting vs dead copy angles |
-| `liam-retargeting` | "Is retargeting working?" | Retargeting vs cold comparison, per-campaign ranking, failure diagnoses |
-| `liam-weekly` | "Weekly snapshot" | Fixed-format week-over-week snapshot, movers, flags, 3 actions; schedule-friendly |
 | `liam-competitors` | "What is <company> running?" | Ad Library teardown: themes, offers, formats, cadence, EU targeting, gaps to exploit |
+
+**Monitor**
+
+| Skill | Ask it | What you get |
+| --- | --- | --- |
+| `liam-weekly` | "Weekly snapshot" | Fixed-format week-over-week snapshot, movers, flags, 3 actions; schedule-friendly |
+| `liam-health` | "Anything on fire?" | Silent-unless-fire daily guardrails; one line when all clear; built for a morning schedule |
+
+**Operate**
+
+| Skill | Ask it | What you get |
+| --- | --- | --- |
+| `liam-launch` | "Launch a campaign for..." | Brief gathering, reach estimate, house guardrails, confirmed draft creation, activation handoff |
+| `liam-experiments` | "Did that change help?" | Hypothesis logging, before/after lift, honest verdicts with confounds stated |
+| `liam-audiences` | "Audit my audiences" | Inventory, health (stuck, small, stale, orphaned), dry-run uploads, Salesforce refresh loop |
+| `liam-account-audit` | "Is my account set up right?" | Hygiene scorecard: naming, conversions, toggles, overlap, UTMs, plus a ranked fix list |
 
 ## Install
 
