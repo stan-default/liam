@@ -12,8 +12,11 @@ pnpm + TypeScript monorepo:
 - `packages/mcp` — MCP server. `src/tools.ts` registers all tools and is shared by the
   stdio entry (`src/index.ts`) and the hosted Vercel route. Add tools in `tools.ts`.
 - `packages/cli` — the `liam` CLI (commander) over the same core.
-- `apps/web` — Next.js app hosting the MCP over HTTP at `/api/mcp` (Vercel), gated by a
-  `MCP_AUTH_TOKEN` bearer.
+- `apps/web` — Next.js app hosting the MCP over HTTP at `/api/mcp` (Vercel). Two tenants:
+  the env-credential tenant gated by a `MCP_AUTH_TOKEN` bearer, and bring-your-own
+  credentials callers who send `X-Liads-*` headers (client id/secret + refresh token,
+  optional account id/version) that the route activates per request via
+  `withRequestCredentials` (core/config.ts, AsyncLocalStorage).
 
 Data flow: every tool/command builds a client via `createLiads()` (core/client.ts), which
 loads config + an auto-refreshing token provider, then calls a resource module. Resource
@@ -29,7 +32,9 @@ modules are thin typed wrappers over `LinkedInClient.request()`.
   change a field there first, then thread it through the resource module.
 - **Secrets never enter the repo.** Local credentials live in `~/.liads/`
   (`config.json` + `credentials.json`, mode 0600). Hosted credentials are `LIADS_*` env
-  vars on Vercel. The config layer (core/config.ts) resolves env first, then files.
+  vars on Vercel, or per-request `X-Liads-*` headers for bring-your-own-credentials
+  callers. The config layer (core/config.ts) resolves request context first, then env,
+  then files. Never log header credentials.
 - **Internal names are frozen.** The package scope `@liads/*`, the `~/.liads` dir, and the
   `LIADS_*` env prefix are intentionally NOT renamed to "liam" (renaming breaks stored
   creds and the deployed Vercel env). The brand "Liam" is visible-surface only.

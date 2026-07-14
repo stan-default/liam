@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 /** Directory holding app credentials + OAuth tokens for local use. Never in the repo. */
 export const LIADS_DIR = join(homedir(), ".liads");
@@ -35,10 +36,47 @@ export interface StoredCredentials {
 }
 
 /**
- * Loads app config. Prefers environment variables (hosted / Vercel), falls back
- * to ~/.liads/config.json (local CLI and self-host).
+ * Per-request credentials for the hosted multi-tenant path: a caller brings
+ * their own LinkedIn app + refresh token in request headers, and the HTTP
+ * handler runs the request inside `withRequestCredentials`. Everything below
+ * (loadConfig, resolveCredentialStore) checks this context first, so the same
+ * tool code serves the env-configured tenant and header-credentialed callers.
+ */
+export interface RequestCredentials {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  linkedinVersion?: string;
+  defaultAccountId?: string;
+}
+
+const requestCredentials = new AsyncLocalStorage<RequestCredentials>();
+
+/** Runs fn with the given caller credentials active for every nested call. */
+export function withRequestCredentials<T>(creds: RequestCredentials, fn: () => T): T {
+  return requestCredentials.run(creds, fn);
+}
+
+/** The caller credentials active for the current request, if any. */
+export function activeRequestCredentials(): RequestCredentials | undefined {
+  return requestCredentials.getStore();
+}
+
+/**
+ * Loads app config. Prefers per-request credentials (hosted multi-tenant),
+ * then environment variables (hosted / Vercel single tenant), then
+ * ~/.liads/config.json (local CLI and self-host).
  */
 export async function loadConfig(): Promise<AppConfig> {
+  const reqCreds = activeRequestCredentials();
+  if (reqCreds) {
+    return {
+      clientId: reqCreds.clientId,
+      clientSecret: reqCreds.clientSecret,
+      linkedinVersion: reqCreds.linkedinVersion,
+      defaultAccountId: reqCreds.defaultAccountId,
+    };
+  }
   if (process.env.LIADS_CLIENT_ID && process.env.LIADS_CLIENT_SECRET) {
     return {
       clientId: process.env.LIADS_CLIENT_ID,
@@ -117,8 +155,44 @@ export class EnvCredentialStore implements CredentialStore {
   }
 }
 
-/** Picks the env store when a refresh token is provided, else the file store. */
+/**
+ * Store for header-credentialed callers. Access tokens derived from a caller's
+ * refresh token are cached in module memory (keyed by that refresh token) so
+ * repeat calls within a warm instance don't re-hit LinkedIn's token endpoint.
+ * Nothing is ever written to disk.
+ */
+const requestTokenCache = new Map<string, StoredCredentials>();
+const REQUEST_TOKEN_CACHE_MAX = 100;
+
+export class RequestCredentialStore implements CredentialStore {
+  constructor(private readonly refreshToken: string) {}
+  async load(): Promise<StoredCredentials | null> {
+    return (
+      requestTokenCache.get(this.refreshToken) ?? {
+        accessToken: "",
+        refreshToken: this.refreshToken,
+        expiresAt: 0,
+      }
+    );
+  }
+  async save(creds: StoredCredentials): Promise<void> {
+    if (requestTokenCache.size >= REQUEST_TOKEN_CACHE_MAX) {
+      const oldest = requestTokenCache.keys().next().value;
+      if (oldest !== undefined) requestTokenCache.delete(oldest);
+    }
+    requestTokenCache.set(this.refreshToken, creds);
+  }
+}
+
+/**
+ * Picks the store matching where credentials came from: per-request headers,
+ * then the env refresh token, else the local file.
+ */
 export function resolveCredentialStore(): CredentialStore {
+  const reqCreds = activeRequestCredentials();
+  if (reqCreds) {
+    return new RequestCredentialStore(reqCreds.refreshToken);
+  }
   if (process.env.LIADS_REFRESH_TOKEN) {
     return new EnvCredentialStore(process.env.LIADS_REFRESH_TOKEN);
   }

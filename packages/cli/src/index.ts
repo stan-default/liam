@@ -35,6 +35,9 @@ import {
 const program = new Command();
 program.name("liam").description("Liam, an ad manager for LinkedIn (CLI)").version("0.1.0");
 
+/** The public hosted MCP endpoint (see README "Hosted MCP" section). */
+const HOSTED_MCP_URL = "https://liam-stan-defaultcoms-projects.vercel.app/api/mcp";
+
 const auth = program.command("auth").description("Authentication");
 auth
   .command("login")
@@ -46,9 +49,30 @@ auth
 
 auth
   .command("export")
-  .description("Print env vars for the hosted (Vercel) MCP server")
-  .action(async () => {
+  .description("Print env vars for a self-hosted (Vercel) MCP server, or --mcp for a hosted connect command")
+  .option(
+    "--mcp [url]",
+    "Print the `claude mcp add` command that connects your credentials to a hosted Liam MCP endpoint",
+  )
+  .action(async (opts: { mcp?: string | boolean }) => {
     const env = await exportHostedEnv();
+    if (opts.mcp) {
+      const url = typeof opts.mcp === "string" ? opts.mcp : HOSTED_MCP_URL;
+      const { loadConfig } = await import("@liads/core");
+      const config = await loadConfig();
+      const headers = [
+        `--header "X-Liads-Client-Id: ${env.LIADS_CLIENT_ID}"`,
+        `--header "X-Liads-Client-Secret: ${env.LIADS_CLIENT_SECRET}"`,
+        `--header "X-Liads-Refresh-Token: ${env.LIADS_REFRESH_TOKEN}"`,
+      ];
+      if (config.defaultAccountId) headers.push(`--header "X-Liads-Account-Id: ${config.defaultAccountId}"`);
+      if (env.LIADS_LINKEDIN_VERSION) headers.push(`--header "X-Liads-Linkedin-Version: ${env.LIADS_LINKEDIN_VERSION}"`);
+      console.log(["claude mcp add --transport http liam", url, ...headers].join(" \\\n  "));
+      console.warn(
+        "! This command carries your app secret and refresh token. Your credentials ride along on every call to that server, so only point it at a deployment you trust, or self-host (see the README).",
+      );
+      return;
+    }
     for (const [k, v] of Object.entries(env)) if (v) console.log(`${k}=${v}`);
     console.warn("! Treat these as secrets. Paste into Vercel project env, do not commit.");
   });

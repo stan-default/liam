@@ -46,6 +46,39 @@ export const CLI_SETUP_PROMPT = `${INTRO}
 8. Show me a first session: "liam report summary -p last_30_days" and
    "liam targeting search titles" with a title I care about.${OUTRO}`;
 
+export const HOSTED_MCP_SETUP_PROMPT = `You are helping me connect to the hosted MCP endpoint of Liam, an
+open-source LinkedIn Ads Manager (https://github.com/stan-default/liam), at
+https://liam-stan-defaultcoms-projects.vercel.app/api/mcp. I bring my own
+LinkedIn developer app credentials as request headers, so every call runs
+against my own LinkedIn ad account, and everything Liam creates is a draft
+that spends nothing until I activate it myself in Campaign Manager.
+
+Work one step at a time, run commands for me where you can, and wait for my
+confirmation before moving on.
+
+1. Help me create a LinkedIn developer app at
+   https://www.linkedin.com/developers/apps (it must be associated with my
+   company's LinkedIn Page). On the Products tab request "Advertising API";
+   on the Auth tab add http://localhost:53682/callback as a redirect URL and
+   show me where the Client ID and Client Secret live.
+2. Mint my refresh token, the one step that runs locally: clone
+   https://github.com/stan-default/liam, run "pnpm install" and "pnpm -r build",
+   write my clientId and clientSecret into ~/.liads/config.json, then run
+   "node packages/cli/dist/index.js auth login" and approve in the browser.
+3. Run "node packages/cli/dist/index.js auth export --mcp". It prints the
+   exact "claude mcp add" command with my credentials as X-Liads headers.
+   Run that command for me (or show me where to paste the headers in my MCP
+   client's config if I am not on Claude Code).
+4. Confirm the liam tools load and show me one read-only call working, for
+   example list_ad_accounts. If my default account is missing, add an
+   "X-Liads-Account-Id" header with my ad account id.
+
+Remind me that my credentials travel with every call to that server, and that
+I can self-host the same endpoint on my own Vercel account if I prefer
+(the README has the steps).
+
+If a step fails, show me the exact error and fix it with me before moving on.`;
+
 export const MCP_SETUP_PROMPT = `You are helping me connect Liam, an open-source LinkedIn Ads Manager
 (https://github.com/stan-default/liam), to Claude as an MCP server. Everything
 it creates on LinkedIn is a draft, so nothing spends money until I activate it

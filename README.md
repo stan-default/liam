@@ -92,7 +92,8 @@ There are two ways to install Liam:
 
 1. **[As an MCP server](#option-1-install-as-an-mcp-server)**, registered with Claude
    Code, Claude Desktop, Cursor, or any MCP client, so you create campaigns by talking
-   to your assistant.
+   to your assistant. Run it locally, or skip the always-on install entirely and
+   [connect to the hosted endpoint with your own credentials](#hosted-mcp-connect-with-your-own-credentials-nothing-to-deploy).
 2. **[As a terminal CLI](#option-2-install-the-terminal-cli)**, a global `liam` command
    for running everything from your terminal, scripts, or cron.
 
@@ -165,26 +166,86 @@ claude mcp add liam -- node /abs/path/liam/packages/mcp/dist/index.js
 Ask for something read-only to confirm it works: "List my ad accounts" or "How did my
 account do in the last 30 days?"
 
-**Hosted on Vercel (optional, single-tenant).** Run the MCP server in the cloud so it
-works from clients that can't spawn local processes:
+#### Hosted MCP: connect with your own credentials, nothing to deploy
+
+The hosted MCP server at
+
+```
+https://liam-stan-defaultcoms-projects.vercel.app/api/mcp
+```
+
+is **multi-tenant, bring-your-own-credentials**: you pass your LinkedIn developer app's
+details as request headers, and every call runs against *your* app and *your* ad account.
+The server holds no state for you: credentials are used in memory to call LinkedIn and
+never logged or persisted.
+
+| Header | Value | Required? |
+| --- | --- | --- |
+| `X-Liads-Client-Id` | your LinkedIn app's Client ID | Yes |
+| `X-Liads-Client-Secret` | your LinkedIn app's Client Secret | Yes |
+| `X-Liads-Refresh-Token` | a refresh token from your `auth login` (~365d) | Yes |
+| `X-Liads-Account-Id` | numeric ad account id used when a call omits one | No |
+| `X-Liads-Linkedin-Version` | API version pin (YYYYMM), defaults to the server's | No |
+
+Do step 0 and step 1 above once (the LinkedIn app and the local `auth login`; LinkedIn's
+OAuth consent has to happen in your browser, so the token mint is the one local step).
+Then print the ready-to-run connect command:
+
+```bash
+node packages/cli/dist/index.js auth export --mcp
+# claude mcp add --transport http liam https://liam-…vercel.app/api/mcp \
+#   --header "X-Liads-Client-Id: …" \
+#   --header "X-Liads-Client-Secret: …" \
+#   --header "X-Liads-Refresh-Token: …" \
+#   --header "X-Liads-Account-Id: …"
+```
+
+Any MCP client that supports custom headers works the same way (for clients without
+native HTTP transport: `npx mcp-remote <url> --header "X-Liads-Client-Id: …" …`).
+Verify with a read-only call ("list my ad accounts"), and from then on the connection is
+just a URL plus headers, usable from machines that never cloned this repo.
+
+Know the trade-off: your client secret and refresh token travel with every request to
+that server, so only point them at a deployment you trust, or self-host the identical
+endpoint (next section). The scopes they carry can manage ads but never activate them;
+the draft-only rule is enforced in the tool layer itself.
+
+Hosted limitations (all by design, they need local resources): `upload_audience_csv`
+reads a CSV path on the server, `audience_from_salesforce` needs your local `sf` CLI,
+competitor-ads scraping falls back to API-only metadata (no browser), and the change
+journal / lift tools need the local `~/.liads/changelog.jsonl`. Run those through the
+local MCP server or CLI.
+
+**Put a skill on top.** The clean split for teams: your MCP client's config holds the
+credentials (the headers above), and a small skill or system prompt holds your playbook:
+default ad account, naming conventions, standing exclusions, house rules like "audience
+expansion always off". The [`skills/`](./skills) folder in this repo is a working example;
+copy one, swap in your defaults, and your assistant drives the hosted tools with your
+rules. Credentials never belong in a skill file.
+
+#### Self-host the same endpoint on Vercel
+
+Run your own instance so credentials never touch shared infrastructure, and so you also
+get a private env-configured tenant:
 
 1. Get your env values locally: `node packages/cli/dist/index.js auth export`.
 2. Deploy `apps/web` to Vercel (set the project **Root Directory** to `apps/web`).
 3. In Vercel project settings, add the env vars from `.env.example`
    (`LIADS_CLIENT_ID`, `LIADS_CLIENT_SECRET`, `LIADS_REFRESH_TOKEN`, `LIADS_LINKEDIN_VERSION`,
-   and a strong `MCP_AUTH_TOKEN`).
+   and a strong `MCP_AUTH_TOKEN`). In Vercel's Deployment Protection settings, disable
+   Vercel Authentication for production (or add a protection-bypass secret); otherwise
+   MCP clients can't reach the endpoint.
 4. Your MCP endpoint is `https://<your-app>.vercel.app/api/mcp`. Connect with the secret
    in the header:
 
 ```bash
 claude mcp add --transport http liam https://<your-app>.vercel.app/api/mcp \
   --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
-# or, for clients without native HTTP transport:
-npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
 ```
 
-The scraper engine for competitor ads needs a local browser, so it stays local-only; the
-hosted server uses the official Ad Library API engine.
+Requests carrying `MCP_AUTH_TOKEN` use the env credentials (your tenant). Requests
+carrying the `X-Liads-*` headers above use the caller's credentials instead, so one
+self-hosted instance can serve your whole team, each member on their own LinkedIn app.
 
 ### Option 2: install the terminal CLI
 
