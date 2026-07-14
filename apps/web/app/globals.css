@@ -81,20 +81,6 @@ body::after {
   color: var(--ink);
   font-weight: 600;
 }
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--amber);
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 10px 2px rgba(255, 176, 0, 0.5);
-  animation: pulse 2.4s ease-in-out infinite;
-}
 
 /* hero */
 .hero {
@@ -545,15 +531,10 @@ body::after {
 @keyframes rise {
   to { opacity: 1; transform: none; }
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
 @media (max-width: 560px) {
   .topbar { font-size: 10px; letter-spacing: 0.12em; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; opacity: 1; transform: none; }
-  .dot { animation: none; }
 }

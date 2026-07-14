@@ -486,7 +486,7 @@ liam launch --brief examples/brief.json            # creates DRAFTS only`}</pre>
 
         <section id="cli-reference" className="section">
           <p className="kicker">CLI reference</p>
-          <h2>Every command, one screen.</h2>
+          <h2>The full CLI reference.</h2>
           <pre className="code" tabIndex={0}>{`liam auth login                         # OAuth, stores tokens in ~/.liads
 liam auth export                        # print env vars for a self-hosted (Vercel) server
 liam auth export --mcp                  # print the hosted-MCP connect command with your headers
@@ -571,7 +571,7 @@ liam lift <level> <id> [-w <days>]      # before vs after performance per record
           <p>
             This is a directional pre and post comparison, not a controlled experiment. It is
             confounded by seasonality, the LinkedIn learning phase after an edit, and concurrent
-            budget changes. Read the deltas as a signal, not proof.
+            budget changes, so treat the deltas as a signal.
           </p>
         </section>
 
@@ -632,7 +632,7 @@ liam lift <level> <id> [-w <days>]      # before vs after performance per record
 
         <section id="salesforce" className="section">
           <p className="kicker">Salesforce</p>
-          <h2>SOQL in, matched audience out.</h2>
+          <h2>From a Salesforce query to a matched audience.</h2>
           <p>
             Liam reads Salesforce by shelling out to the authenticated <code>sf</code> CLI, so it
             reuses your existing login and needs no new credentials. Give it a SOQL query that
@@ -645,7 +645,7 @@ liam lift <level> <id> [-w <days>]      # before vs after performance per record
 
         <section id="safety" className="section">
           <p className="kicker">Safety</p>
-          <h2>The rules that don&apos;t bend.</h2>
+          <h2>The safety rules.</h2>
           <ul>
             <li>
               Every campaign and creative is created DRAFT or PAUSED. Activation is a separate,
