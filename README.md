@@ -256,6 +256,39 @@ before moving to the next step.
 If any step fails, show me the exact error and fix it with me before moving on.
 ```
 
+## Skills: playbooks on top of Liam
+
+The [`skills/`](./skills) directory ships ten portable agent skills that turn Liam's
+raw tools into opinionated workflows. Each encodes a methodology (what to pull, how to
+judge it, significance floors, caveats, a fixed report format) and works over MCP or
+the CLI. Analysis and monitoring skills are read-only; the operating skills create
+drafts only, after confirmation.
+
+Analyze:
+
+- **liam-spend**, "analyze my spend": budget concentration, wasted spend, reallocation moves
+- **liam-performance**, "how are my ads doing": winners, losers, fatigue, actions
+- **liam-leads**, "which ads drive leads, which don't": drivers, pause list, angle patterns
+- **liam-competitors**, "what is `<company>` running": Ad Library teardown and gaps
+
+Monitor:
+
+- **liam-weekly**, "weekly snapshot": fixed-format week-over-week digest, schedule-friendly
+- **liam-health**, "anything on fire": silent-unless-fire daily guardrails, one line when all clear
+
+Operate:
+
+- **liam-launch**, "launch a campaign": brief to confirmed draft with house guardrails applied
+- **liam-experiments**, "did that change help": hypothesis logging plus before/after lift
+- **liam-audiences**, "audit my audiences": health, dry-run uploads, Salesforce refresh loop
+- **liam-account-audit**, "is my account set up right": hygiene scorecard and fix list
+
+```bash
+./skills/install.sh   # symlinks them into ~/.claude/skills (Claude Code personal skills)
+```
+
+See [skills/README.md](./skills/README.md) for details and conventions.
+
 ## Tools (MCP)
 
 - **Accounts:** `list_ad_accounts`
