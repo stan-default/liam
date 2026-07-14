@@ -401,7 +401,8 @@ All commands also work via `node packages/cli/dist/index.js <cmd>`.
 
 ```
 liam auth login                         # OAuth, stores tokens in ~/.liads
-liam auth export                        # print env vars for the hosted (Vercel) server
+liam auth export                        # print env vars for a self-hosted (Vercel) server
+liam auth export --mcp                  # print the hosted-MCP connect command with your headers
 liam accounts list                      # list accessible ad accounts
 liam targeting search <facet> <query>   # typeahead a facet for entity URNs
 liam targeting estimate <facet> <urns…> # audience size for one facet's URNs

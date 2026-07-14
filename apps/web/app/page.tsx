@@ -92,9 +92,17 @@ export default function Home() {
         <span>
           <b>LIAM</b> · LINKEDIN ADS MANAGER
         </span>
-        <span className="status">
-          <span className="dot" aria-hidden />
-          ON DUTY
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 22 }}>
+          <nav className="topnav">
+            <a href="/docs">DOCS</a>
+            <a href={REPO} target="_blank" rel="noreferrer">
+              GITHUB
+            </a>
+          </nav>
+          <span className="status">
+            <span className="dot" aria-hidden />
+            ON DUTY
+          </span>
         </span>
       </header>
 
@@ -105,13 +113,15 @@ export default function Home() {
           <p className="tagline reveal d2">
             The <em>LinkedIn Ads Manager</em> you talk to. Describe the campaign in plain language
             and Liam drafts the <em>audience</em>, the <em>ad groups</em>, and the <em>ads</em>.
-            Works from <em>Claude over MCP</em> or a <em>CLI</em>.
+            Works from <em>Claude over MCP</em> or a <em>CLI</em>, locally or through the{" "}
+            <em>hosted endpoint</em> with your own LinkedIn app.
           </p>
 
           <p className="heroLinks reveal d3">
             <a href="#get-started">Get started ↓</a>
             <a href="#use-cases">What it can do ↓</a>
             <a href="#faq">FAQ ↓</a>
+            <a href="/docs">Docs →</a>
             <a href={REPO} target="_blank" rel="noreferrer">
               GitHub ↗
             </a>
@@ -197,12 +207,12 @@ export default function Home() {
 
           <p className="note fine">
             Prefer to do it by hand, or want to self-host the hosted mode on your own Vercel
-            account? The{" "}
+            account? The <a href="/docs">docs</a> have the full manual walkthrough, the hosted
+            header reference, and the permissions table, mirrored from the{" "}
             <a href={`${REPO}#install`} target="_blank" rel="noreferrer">
               README
-            </a>{" "}
-            has the full manual walkthrough, the hosted header reference, and the permissions
-            table.
+            </a>
+            .
           </p>
         </section>
 
@@ -222,9 +232,12 @@ export default function Home() {
 
       <footer className="footer">
         <span>Unofficial. Not affiliated with or endorsed by LinkedIn.</span>
-        <a href={REPO} target="_blank" rel="noreferrer">
-          github.com/stan-default/liam ↗
-        </a>
+        <span style={{ display: "inline-flex", gap: 24 }}>
+          <a href="/docs">Docs</a>
+          <a href={REPO} target="_blank" rel="noreferrer">
+            github.com/stan-default/liam ↗
+          </a>
+        </span>
       </footer>
     </div>
   );
