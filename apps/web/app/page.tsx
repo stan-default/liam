@@ -176,7 +176,7 @@ export default function Home() {
 
           <p className="note fine">
             Prefer to do it by hand, or want the single-tenant hosted mode on Vercel? The{" "}
-            <a href={`${REPO}#get-started`} target="_blank" rel="noreferrer">
+            <a href={`${REPO}#install`} target="_blank" rel="noreferrer">
               README
             </a>{" "}
             has the full manual walkthrough and the permissions table.

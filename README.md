@@ -86,11 +86,20 @@ local change journal (`~/.liads/changelog.jsonl`) for later lift analysis.
 [AGENTS.md](./AGENTS.md) has the full architecture notes and the LinkedIn API gotchas
 (restli encoding, required fields, DMP audience flow) learned from live testing.
 
-## Get started
+## Install
 
-There are two ways to use Liam: as a CLI in your terminal, or as an MCP server your
-assistant talks to. Both run against **your own LinkedIn developer app**, so your
-credentials and your ad account stay yours. Both start with the same step 0.
+There are two ways to install Liam:
+
+1. **[As an MCP server](#option-1-install-as-an-mcp-server)**, registered with Claude
+   Code, Claude Desktop, Cursor, or any MCP client, so you create campaigns by talking
+   to your assistant.
+2. **[As a terminal CLI](#option-2-install-the-terminal-cli)**, a global `liam` command
+   for running everything from your terminal, scripts, or cron.
+
+Both run against **your own LinkedIn developer app**, so your credentials and your ad
+account stay yours. Both share the same first two steps: create a LinkedIn app (step 0)
+and build + authenticate (step 1). After that, pick your path, or do both; they read the
+same `~/.liads` credentials.
 
 ### Step 0: create a LinkedIn app (once)
 
@@ -116,7 +125,9 @@ credentials and your ad account stay yours. Both start with the same step 0.
 a product or scope later, run `auth login` again; a token refresh keeps only the scopes
 you originally granted.
 
-### Path 1: the CLI
+### Step 1: build and authenticate (once, both paths)
+
+Requires git, Node.js 20+, and pnpm.
 
 ```bash
 git clone https://github.com/stan-default/liam.git
@@ -131,29 +142,9 @@ node packages/cli/dist/index.js auth login      # opens the browser; tokens land
 node packages/cli/dist/index.js accounts list   # verify, then set defaultAccountId in config.json
 ```
 
-To get a global `liam` command instead of the long `node` path:
+### Option 1: install as an MCP server
 
-```bash
-cd packages/cli && pnpm link --global
-liam accounts list
-```
-
-(No pnpm? An alias works too: `alias liam="node /abs/path/liam/packages/cli/dist/index.js"`.)
-
-A sensible first session:
-
-```bash
-liam targeting search titles "demand generation"   # resolve targeting URNs
-liam report summary -p last_30_days                # account rollup + flags
-liam launch --brief examples/brief.json            # creates DRAFTS only
-```
-
-The full [CLI reference](#cli-reference) is below.
-
-### Path 2: MCP (talk to it from your assistant)
-
-Do the CLI setup first (clone, build, config, `auth login`); the MCP server reads the
-same `~/.liads` credentials. Then register the server with your client:
+Register the server with your MCP client; it reads the `~/.liads` credentials from step 1.
 
 **Claude Code**
 
@@ -194,6 +185,28 @@ npx mcp-remote https://<your-app>.vercel.app/api/mcp --header "Authorization: Be
 
 The scraper engine for competitor ads needs a local browser, so it stays local-only; the
 hosted server uses the official Ad Library API engine.
+
+### Option 2: install the terminal CLI
+
+Step 1 already left a working CLI at `node packages/cli/dist/index.js`. To get a global
+`liam` command instead of the long `node` path:
+
+```bash
+cd packages/cli && pnpm link --global
+liam accounts list
+```
+
+(No pnpm link? An alias works too: `alias liam="node /abs/path/liam/packages/cli/dist/index.js"`.)
+
+A sensible first session:
+
+```bash
+liam targeting search titles "demand generation"   # resolve targeting URNs
+liam report summary -p last_30_days                # account rollup + flags
+liam launch --brief examples/brief.json            # creates DRAFTS only
+```
+
+The full [CLI reference](#cli-reference) is below.
 
 ### Or paste this prompt and let your assistant do the setup
 
