@@ -48,7 +48,7 @@ export const CLI_SETUP_PROMPT = `${INTRO}
 
 export const HOSTED_MCP_SETUP_PROMPT = `You are helping me connect to the hosted MCP endpoint of Liam, an
 open-source LinkedIn Ads Manager (https://github.com/stan-default/liam), at
-https://liam-stan-defaultcoms-projects.vercel.app/api/mcp. I bring my own
+https://liam-mcp.vercel.app/api/mcp. I bring my own
 LinkedIn developer app credentials as request headers, so every call runs
 against my own LinkedIn ad account, and everything Liam creates is a draft
 that spends nothing until I activate it myself in Campaign Manager.

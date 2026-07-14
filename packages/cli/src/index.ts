@@ -36,7 +36,7 @@ const program = new Command();
 program.name("liam").description("Liam, an ad manager for LinkedIn (CLI)").version("0.1.0");
 
 /** The public hosted MCP endpoint (see README "Hosted MCP" section). */
-const HOSTED_MCP_URL = "https://liam-stan-defaultcoms-projects.vercel.app/api/mcp";
+const HOSTED_MCP_URL = "https://liam-mcp.vercel.app/api/mcp";
 
 const auth = program.command("auth").description("Authentication");
 auth

@@ -171,7 +171,7 @@ account do in the last 30 days?"
 The hosted MCP server at
 
 ```
-https://liam-stan-defaultcoms-projects.vercel.app/api/mcp
+https://liam-mcp.vercel.app/api/mcp
 ```
 
 is **multi-tenant, bring-your-own-credentials**: you pass your LinkedIn developer app's
