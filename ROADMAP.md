@@ -7,26 +7,27 @@ creates drafts, and nothing spends until you activate it.
 
 ## Shipped
 
-- **Campaign creation** — campaign groups, campaigns, and draft creatives (text + single-image
+- **Campaign creation**: campaign groups, campaigns, and draft creatives (text + single-image
   sponsored content), with every required LinkedIn field handled.
-- **Smarter targeting** — natural language to LinkedIn facets (titles, seniority, industry,
+- **Smarter targeting**: natural language to LinkedIn facets (titles, seniority, industry,
   company size, skills), with live audience-size estimates.
-- **Audiences** — CSV upload with automatic cleaning (column-name normalization, drop
+- **Audiences**: CSV upload with automatic cleaning (column-name normalization, drop
   non-matcher columns, domains to website URLs), contact and company lists, plus
   build-an-audience-straight-from-Salesforce.
-- **Conversions** — select an existing insight-tag conversion (e.g. Meeting Booked) when
+- **Conversions**: select an existing insight-tag conversion (e.g. Meeting Booked) when
   creating a campaign; never creates conversions.
-- **Reporting and insights** — per-level performance (account, campaign group, campaign,
+- **Reporting and insights**: per-level performance (account, campaign group, campaign,
   creative), weekly/monthly trends with deltas, derived KPIs (CTR, CPC, CPM, CPL, conversion
   rate, cost per conversion), and heuristic flags.
-- **Competitor ad intelligence** — read any company's live and recent ads from the LinkedIn Ad
+- **Competitor ad intelligence**: read any company's live and recent ads from the LinkedIn Ad
   Library (no ad-account access needed). The official Ad Library API (`GET /rest/adLibrary`, verified
-  live) returns structured metadata — advertiser, payer, format, and for EU-served ads run dates,
-  impression ranges, per-country split, and targeting facets — but no creative; a Playwright scraper of
+  live) returns structured metadata (advertiser, payer, format, and for EU-served ads run dates,
+  impression ranges, per-country split, and targeting facets) but no creative; a Playwright scraper of
   the public library layers in the ad copy/image. Engines `api` / `scraper` / `auto` (default: API
   metadata + copy from each ad's detail page, scraper fallback if unprovisioned). Synthesize messaging
   themes and how the account is run from the result. CLI `competitor ads`, MCP `inspect_competitor_ads`.
-- **Delivery** — local CLI, local MCP server, and a single-tenant hosted MCP on Vercel.
+- **Delivery**: local CLI, local MCP server, and a hosted MCP on Vercel that accepts your own
+  LinkedIn app credentials as headers, so nothing needs deploying to use it.
 
 ## Planned
 

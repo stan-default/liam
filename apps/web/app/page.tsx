@@ -14,7 +14,7 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "How does it work?",
-    a: "A CLI and an MCP server sit on top of the same typed client for LinkedIn's Marketing API. You say what you want, your assistant calls the matching tools, and LinkedIn returns the ids. Every change Liam makes is journaled to a local file so you can measure the lift of any edit later.",
+    a: "A CLI and an MCP server sit on top of the same typed client for LinkedIn's Marketing API. You say what you want and your assistant calls the matching tools. Every change Liam makes is journaled to a local file so you can measure the lift of any edit later.",
   },
   {
     q: "How do I get started?",
@@ -22,15 +22,15 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "Do I need to be a developer?",
-    a: "You need a terminal with Claude Code installed, and the setup prompt does the rest. If you can paste a block of text and click approve in your browser, you can finish the setup.",
+    a: "No. You need a terminal with Claude Code installed, and the setup prompt does the rest. The hardest part is clicking approve in your browser when LinkedIn asks.",
   },
   {
     q: "Where do my credentials live?",
-    a: "In a ~/.liads folder on your own machine, with file permissions locked to your user. Tokens go to LinkedIn's API and nowhere else. If you self-host the hosted mode, the credentials live in your own Vercel project's environment variables. If you connect to the shared hosted endpoint, they live in your MCP client's config as headers and ride along on each call; they are used in memory only and never stored on the server, but self-host if you would rather they never leave your infrastructure.",
+    a: "In a ~/.liads folder on your own machine, with file permissions locked to your user. Tokens go to LinkedIn's API and nowhere else. Self-hosting the hosted mode puts them in your own Vercel project's environment variables. Connecting to the shared hosted endpoint puts them in your MCP client's config as headers, so they ride along on each call; the server uses them in memory and stores nothing. Self-host if you would rather they never leave your infrastructure.",
   },
   {
     q: "Can I use it without installing anything?",
-    a: "Almost. The hosted MCP endpoint lets any MCP client that supports custom headers connect with your own LinkedIn app credentials, so there is nothing to deploy or keep running. You still do one short local run to mint your refresh token (LinkedIn's OAuth consent has to happen in your browser); after that, the connection is just a URL plus headers. A skill or system prompt with your account defaults sits on top and the hosted tools do the rest.",
+    a: "Almost. The hosted MCP endpoint lets any MCP client that supports custom headers connect with your own LinkedIn app credentials, so there is nothing to deploy or keep running. You still do one short local run to mint your refresh token, since LinkedIn's OAuth consent has to happen in your browser. After that the connection is a URL plus headers, and a skill or system prompt holds your account defaults.",
   },
   {
     q: "What does it cost?",
@@ -38,7 +38,7 @@ const FAQ: Array<{ q: string; a: string }> = [
   },
   {
     q: "Does it only work with Claude?",
-    a: "It works with any MCP client: Claude Code, Claude Desktop, Cursor, and the rest. The CLI needs no assistant at all, so you can script it, pipe it, or put a weekly report in cron.",
+    a: "It works with any MCP client: Claude Code, Claude Desktop, Cursor, and the rest. The CLI needs no assistant at all. Put a weekly report in cron and it runs without one.",
   },
   {
     q: "Is this an official LinkedIn product?",
@@ -53,7 +53,7 @@ const USE_CASES: Array<{ q: string; note: string }> = [
   },
   {
     q: "Upload this CSV as a matched audience.",
-    note: "Cleans the columns, hashes emails, converts company domains to URLs.",
+    note: "Auto-cleans the columns and hashes emails; company domains become website URLs.",
   },
   {
     q: "Build an audience from Salesforce: every contact on a target account.",
@@ -92,10 +92,12 @@ export default function Home() {
         <span>
           <b>LIAM</b> · LINKEDIN ADS MANAGER
         </span>
-        <span className="status">
-          <span className="dot" aria-hidden />
-          ON DUTY
-        </span>
+        <nav className="topnav">
+          <a href="/docs">DOCS</a>
+          <a href={REPO} target="_blank" rel="noreferrer">
+            GITHUB
+          </a>
+        </nav>
       </header>
 
       <main>
@@ -105,13 +107,15 @@ export default function Home() {
           <p className="tagline reveal d2">
             The <em>LinkedIn Ads Manager</em> you talk to. Describe the campaign in plain language
             and Liam drafts the <em>audience</em>, the <em>ad groups</em>, and the <em>ads</em>.
-            Works from <em>Claude over MCP</em> or a <em>CLI</em>.
+            Works from <em>Claude over MCP</em> or a <em>CLI</em>, locally or through the{" "}
+            <em>hosted endpoint</em> with your own LinkedIn app.
           </p>
 
           <p className="heroLinks reveal d3">
             <a href="#get-started">Get started ↓</a>
             <a href="#use-cases">What it can do ↓</a>
             <a href="#faq">FAQ ↓</a>
+            <a href="/docs">Docs →</a>
             <a href={REPO} target="_blank" rel="noreferrer">
               GitHub ↗
             </a>
@@ -138,7 +142,7 @@ export default function Home() {
           <p className="kicker">Get started</p>
           <h2>One prompt sets everything up.</h2>
           <p className="sub">
-            Pick how you want to use Liam, copy the prompt, and paste it into Claude Code. It
+            Pick how you want to use Liam and paste the matching prompt into Claude Code. It
             checks your machine, helps you create your own LinkedIn developer app, logs you in,
             and verifies the connection, one step at a time.
           </p>
@@ -197,12 +201,12 @@ export default function Home() {
 
           <p className="note fine">
             Prefer to do it by hand, or want to self-host the hosted mode on your own Vercel
-            account? The{" "}
+            account? The <a href="/docs">docs</a> have the full manual walkthrough, the hosted
+            header reference, and the permissions table, mirrored from the{" "}
             <a href={`${REPO}#install`} target="_blank" rel="noreferrer">
               README
-            </a>{" "}
-            has the full manual walkthrough, the hosted header reference, and the permissions
-            table.
+            </a>
+            .
           </p>
         </section>
 
@@ -222,9 +226,12 @@ export default function Home() {
 
       <footer className="footer">
         <span>Unofficial. Not affiliated with or endorsed by LinkedIn.</span>
-        <a href={REPO} target="_blank" rel="noreferrer">
-          github.com/stan-default/liam ↗
-        </a>
+        <span style={{ display: "inline-flex", gap: 24 }}>
+          <a href="/docs">Docs</a>
+          <a href={REPO} target="_blank" rel="noreferrer">
+            github.com/stan-default/liam ↗
+          </a>
+        </span>
       </footer>
     </div>
   );

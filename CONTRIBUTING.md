@@ -12,10 +12,10 @@ pnpm -r typecheck
 
 ## Layout
 
-- `packages/core` — LinkedIn REST client, OAuth, resource modules, audience hashing, Salesforce reader.
-- `packages/mcp` — MCP server. `src/tools.ts` registers tools; `src/index.ts` is the stdio entry.
-- `packages/cli` — the `liam` CLI.
-- `apps/web` — Next.js app hosting the MCP over HTTP (Vercel).
+- `packages/core`: LinkedIn REST client, OAuth, resource modules, audience hashing, Salesforce reader.
+- `packages/mcp`: MCP server. `src/tools.ts` registers tools; `src/index.ts` is the stdio entry.
+- `packages/cli`: the `liam` CLI.
+- `apps/web`: Next.js app hosting the MCP over HTTP (Vercel).
 
 ## Conventions
 

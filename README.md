@@ -35,12 +35,12 @@ handles today, roughly in the order a campaign comes together:
   ignores edits to a live ad's post)
 - "Did the new headline actually help?" (change journal + before/after lift)
 
-Liam resolves the details, does the work, and reports back the ids. Every capability is
-also a `liam` CLI command for scripted or batch use.
+Liam resolves the details and reports back the ids. Every capability is also a `liam`
+CLI command for scripted or batch use.
 
 ### Put it on a loop
 
-Liam has no scheduler of its own, and doesn't need one: the client you drive it from does.
+There is no scheduler in Liam. Use the one in whatever client you drive it from.
 Some loops that work well:
 
 - "Every Monday at 9am, pull last week's performance summary, compare it to the week
@@ -63,10 +63,10 @@ Some loops that work well:
 
 ## Packages
 
-- `@liads/core` — LinkedIn REST client, OAuth, resource modules, CSV + SHA256 hashing, Salesforce reader.
-- `@liads/mcp` — MCP server (stdio for local; reused by the hosted app). **Primary interface.**
-- `@liads/cli` — the `liam` CLI over the same core, for scripted batch runs.
-- `@liads/web` — Next.js app that hosts the MCP over HTTP on Vercel.
+- `@liads/core`: LinkedIn REST client, OAuth, resource modules, CSV + SHA256 hashing, Salesforce reader.
+- `@liads/mcp`: MCP server (stdio for local; reused by the hosted app). **Primary interface.**
+- `@liads/cli`: the `liam` CLI over the same core, for scripted batch runs.
+- `@liads/web`: Next.js app that hosts the MCP over HTTP on Vercel.
 
 ## How it works
 
@@ -98,8 +98,8 @@ There are two ways to install Liam:
    for running everything from your terminal, scripts, or cron.
 
 Both run against **your own LinkedIn developer app**, so your credentials and your ad
-account stay yours. Both share the same first two steps: create a LinkedIn app (step 0)
-and build + authenticate (step 1). After that, pick your path, or do both; they read the
+account stay yours. The first two steps are shared: create a LinkedIn app (step 0) and
+build + authenticate (step 1). After that, pick your path, or do both; they read the
 same `~/.liads` credentials.
 
 ### Step 0: create a LinkedIn app (once)
@@ -355,30 +355,30 @@ See [skills/README.md](./skills/README.md) for details and conventions.
 - **Accounts:** `list_ad_accounts`
 - **Targeting:** `list_targeting_facets`, `search_targeting` (typeahead a facet for entity URNs),
   `list_facet_entities`, `estimate_audience` (structured spec). Talk in plain language
-  ("VPs of demand gen at SaaS companies in the US") and Liam resolves the facets, estimates
-  reach, then builds the campaign.
+  ("VPs of demand gen at SaaS companies in the US") and Liam resolves the facets and
+  estimates reach before building the campaign.
 - **Audiences:** `upload_audience_csv` (auto-cleans the CSV: normalizes column names, drops
   non-matcher columns, hashes emails, converts company domains to website URLs; supports both
-  contact and company lists), `audience_from_salesforce` (SOQL → matched audience), `get_audience_status`
+  contact and company lists), `audience_from_salesforce` (SOQL to matched audience), `get_audience_status`
 - **Conversions:** `list_conversions` (select an existing insight-tag conversion to track).
   `create_campaign` and `launch_from_brief` accept `conversionIds` or `conversionName`, and
   fall back to `defaultConversionName` from config.
 - **Campaigns:** `create_campaign_group`, `create_campaign`, `create_text_ad`, `create_image_ad`;
-  `list_campaigns` (the account structure — campaign groups and their ad groups, **drafts
+  `list_campaigns` (the account structure: campaign groups and their ad groups, **drafts
   included**, unlike reporting which only shows entities with spend), `list_ads`, `delete_ad`
   (removes the creative and best-effort its Direct Sponsored Content post). LinkedIn's editor
   ignores post edits on a live ad, so to change copy you recreate: `delete_ad` + `create_image_ad`.
 - **Orchestrator:** `launch_from_brief` (audience + group + campaign + draft creatives in one call)
 - **Reporting:** `performance_summary` (account rollup + top/bottom + flags), `get_performance`
   (per-entity KPIs at any level), `performance_trend` (weekly/monthly with deltas). KPIs: CTR,
-  CPC, CPM, CPL, conversion rate, cost per conversion. Levels: campaign_group → campaign → creative.
-- **Competitor intel:** `inspect_competitor_ads` — read any company's ads from the LinkedIn Ad
+  CPC, CPM, CPL, conversion rate, cost per conversion. Levels: campaign_group, campaign, creative.
+- **Competitor intel:** `inspect_competitor_ads` reads any company's ads from the LinkedIn Ad
   Library (no ad-account access needed). The **official Ad Library API** (`GET /rest/adLibrary`,
-  requires the "LinkedIn Ad Library" product grant) returns structured metadata — advertiser, payer,
-  format, and for EU-served ads run dates, impression ranges, per-country split, and targeting facets —
+  requires the "LinkedIn Ad Library" product grant) returns structured metadata (advertiser, payer,
+  format, and for EU-served ads run dates, impression ranges, per-country split, and targeting facets)
   but no creative. A **Playwright scraper** of the public library supplies the ad copy/image. Engines
   (`engine`): `api` (metadata only, fast, works hosted), `scraper` (copy via browser, local, supports
-  company-id), and `auto` (default — API metadata + copy layered from each ad's detail page, falling
+  company-id), and `auto` (default: API metadata plus copy layered from each ad's detail page, falling
   back to the scraper if the API isn't provisioned). Search by `advertiser` name or `keyword` (the API
   has no company-id or date filter). CLI: `liam competitor ads`.
 - **Change journal & lift:** `log_ad_change` (record a change), `list_ad_changes`, `compute_lift`
@@ -401,7 +401,8 @@ All commands also work via `node packages/cli/dist/index.js <cmd>`.
 
 ```
 liam auth login                         # OAuth, stores tokens in ~/.liads
-liam auth export                        # print env vars for the hosted (Vercel) server
+liam auth export                        # print env vars for a self-hosted (Vercel) server
+liam auth export --mcp                  # print the hosted-MCP connect command with your headers
 liam accounts list                      # list accessible ad accounts
 liam targeting search <facet> <query>   # typeahead a facet for entity URNs
 liam targeting estimate <facet> <urns…> # audience size for one facet's URNs
@@ -434,8 +435,8 @@ Periods: `last_7_days`, `last_30_days`, `last_90_days`, `month_to_date`, `last_m
 Liam keeps an append-only journal of every change made to an ad entity so you can measure the
 **lift** of a change: how performance differed in the window before it versus after.
 
-- **Where it lives:** `~/.liads/changelog.jsonl` (one JSON object per line). It's a plain local
-  file — no database, no account, no setup. Override the path with `LIADS_CHANGELOG_PATH`.
+- **Where it lives:** `~/.liads/changelog.jsonl` (one JSON object per line). A plain local
+  file with nothing to set up. Override the path with `LIADS_CHANGELOG_PATH`.
 - **Auto-capture:** every create/update Liam makes to a campaign group, campaign, or creative is
   journaled automatically (captured at the one HTTP chokepoint, so it can't be forgotten).
 - **Manual entries:** log changes made outside Liam (e.g. in Campaign Manager), or attach a
@@ -446,9 +447,9 @@ Liam keeps an append-only journal of every change made to an ad entity so you ca
   after, reporting before/after KPIs and per-metric deltas (CTR, CPC, conversion rate,
   cost-per-conversion, …). Recent changes get a clamped, `partial` after-window.
 
-This is a **directional pre/post comparison, not a controlled experiment** — it's confounded by
-seasonality, the LinkedIn learning phase after an edit, and any concurrent budget change. Read the
-deltas as a signal, not proof. Set `LIADS_NO_CHANGELOG=1` to disable auto-capture; journaling is
+This is a **directional pre/post comparison, not a controlled experiment**. It is confounded by
+seasonality, the LinkedIn learning phase after an edit, and any concurrent budget change, so treat
+the deltas as a signal. Set `LIADS_NO_CHANGELOG=1` to disable auto-capture; journaling is
 also off on hosted deploys (read-only filesystem).
 
 ## Configuration
