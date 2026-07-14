@@ -1,4 +1,6 @@
 import { createMcpHandler } from "mcp-handler";
+import { after } from "next/server";
+import { track } from "@vercel/analytics/server";
 import { withRequestCredentials, type RequestCredentials } from "@liads/core";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { registerTools } from "@liads/mcp/tools";
@@ -47,7 +49,37 @@ function authorized(req: Request): boolean {
   return new URL(req.url).searchParams.get("key") === token;
 }
 
+/**
+ * Records each MCP request as a Vercel Analytics custom event: the JSON-RPC
+ * method, the tool name on tools/call, and whether the caller brought their
+ * own credentials. Never the credentials or arguments themselves. Analytics
+ * must never interfere with MCP traffic, so failures are swallowed.
+ */
+async function trackMcpRequest(req: Request): Promise<void> {
+  try {
+    if (req.method !== "POST") return;
+    const body: unknown = await req.clone().json();
+    const messages = Array.isArray(body) ? body : [body];
+    for (const msg of messages) {
+      const method = (msg as { method?: unknown })?.method;
+      if (typeof method !== "string") continue;
+      const tool =
+        method === "tools/call"
+          ? ((msg as { params?: { name?: unknown } }).params?.name as string | undefined)
+          : undefined;
+      await track("mcp_request", {
+        method,
+        tool: tool ?? null,
+        tenant: req.headers.get("x-liads-client-id") ? "byo" : "env",
+      });
+    }
+  } catch {
+    // ignore — analytics only
+  }
+}
+
 async function guard(req: Request): Promise<Response> {
+  after(() => trackMcpRequest(req));
   const creds = headerCredentials(req);
   if (creds) {
     return withRequestCredentials(creds, () => mcpHandler(req));
