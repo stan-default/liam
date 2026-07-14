@@ -256,6 +256,26 @@ before moving to the next step.
 If any step fails, show me the exact error and fix it with me before moving on.
 ```
 
+## Skills: analysis playbooks on top of Liam
+
+The [`skills/`](./skills) directory ships six portable agent skills that turn Liam's
+raw tools into opinionated analyses. Each encodes a methodology (what to pull, how to
+judge it, significance floors, caveats, a fixed report format), works over MCP or the
+CLI, and is read-only against your account:
+
+- **liam-spend**, "analyze my spend": budget concentration, wasted spend, reallocation moves
+- **liam-performance**, "how are my ads doing": winners, losers, fatigue, actions
+- **liam-leads**, "which ads drive leads, which don't": drivers, pause list, angle patterns
+- **liam-retargeting**, "is retargeting working": retargeting vs cold, diagnoses
+- **liam-weekly**, "weekly snapshot": fixed-format week-over-week digest, schedule-friendly
+- **liam-competitors**, "what is `<company>` running": Ad Library teardown and gaps
+
+```bash
+./skills/install.sh   # symlinks them into ~/.claude/skills (Claude Code personal skills)
+```
+
+See [skills/README.md](./skills/README.md) for details and conventions.
+
 ## Tools (MCP)
 
 - **Accounts:** `list_ad_accounts`
