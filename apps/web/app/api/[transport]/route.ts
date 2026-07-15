@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createMcpHandler } from "mcp-handler";
 import { after } from "next/server";
 import { track } from "@vercel/analytics/server";
@@ -42,11 +43,20 @@ function headerCredentials(req: Request): RequestCredentials | null {
   };
 }
 
+/** Constant-time string comparison; never leaks how much of the token matched. */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
+
 function authorized(req: Request): boolean {
   const token = process.env.MCP_AUTH_TOKEN;
-  if (!token) return true; // Unset = open. Always set MCP_AUTH_TOKEN in production.
-  if (req.headers.get("authorization") === `Bearer ${token}`) return true;
-  return new URL(req.url).searchParams.get("key") === token;
+  // Unset token: fail closed in production, open only for local development.
+  if (!token) return process.env.NODE_ENV !== "production";
+  // Header only — a `?key=` query param would leak the token into request logs.
+  const auth = req.headers.get("authorization");
+  return auth !== null && safeEqual(auth, `Bearer ${token}`);
 }
 
 /**
