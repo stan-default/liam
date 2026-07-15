@@ -4,7 +4,7 @@ import type { CampaignInput } from "../schemas.js";
 import { sponsoredAccountUrn, campaignGroupUrn } from "../urns.js";
 import { buildTargetingCriteria, geoSegmentSpec, withDefaultExclusions } from "./targeting.js";
 import { associateCampaignWithConversion, resolveConversionIdByName } from "./conversions.js";
-import { loadConfig } from "../config.js";
+import { loadConfig, resolveDefaultConversionNames } from "../config.js";
 import type { CreatedEntity } from "./campaignGroups.js";
 
 /**
@@ -56,14 +56,16 @@ export async function createCampaign(
   if (!res.restliId) throw new Error("Campaign created but no id returned");
 
   // Conversions: use explicit ids if given, otherwise fall back to the account's
-  // default conversion (config.defaultConversionName) unless opted out.
+  // default conversion(s) (config.defaultConversionNames) unless opted out.
   let conversionIds = input.conversionIds ?? [];
   if (conversionIds.length === 0 && (input.applyDefaultConversion ?? true)) {
-    const name = (await loadConfig()).defaultConversionName;
-    if (name) {
+    const names = resolveDefaultConversionNames(await loadConfig());
+    const resolved: string[] = [];
+    for (const name of names) {
       const id = await resolveConversionIdByName(client, input.accountId, name);
-      if (id) conversionIds = [id];
+      if (id) resolved.push(id);
     }
+    conversionIds = resolved;
   }
   // Select existing conversions (e.g. an insight tag) for this campaign.
   for (const conversionId of conversionIds) {

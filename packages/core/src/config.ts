@@ -23,6 +23,21 @@ export interface AppConfig {
   defaultAccountId?: string;
   /** Conversion name auto-selected for new campaigns when none is specified. */
   defaultConversionName?: string;
+  /**
+   * Conversion names auto-selected for new campaigns when none is specified.
+   * Takes precedence over defaultConversionName; every listed conversion is
+   * attached. Use resolveDefaultConversionNames() to read the effective list.
+   */
+  defaultConversionNames?: string[];
+}
+
+/**
+ * Effective list of default conversion names to attach to new campaigns:
+ * defaultConversionNames if set, else the single defaultConversionName, else [].
+ */
+export function resolveDefaultConversionNames(config: AppConfig): string[] {
+  if (config.defaultConversionNames?.length) return config.defaultConversionNames;
+  return config.defaultConversionName ? [config.defaultConversionName] : [];
 }
 
 export interface StoredCredentials {
