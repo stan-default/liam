@@ -7,7 +7,7 @@ import { createTextAdCreative } from "./resources/creatives.js";
 import { createSponsoredImageDraft } from "./creative.js";
 import { estimateAudience, MIN_AUDIENCE_TO_SERVE, geoSegmentSpec, type TargetingSpec } from "./resources/targeting.js";
 import { resolveConversionIdByName } from "./resources/conversions.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, resolveDefaultConversionNames } from "./config.js";
 import { campaignManagerGroupLink, campaignManagerCampaignLink } from "./urns.js";
 
 export interface LaunchResult {
@@ -63,15 +63,20 @@ export async function launchFromBrief(
     // Estimate is best-effort; don't block the launch on it.
   }
 
-  // Resolve the conversion to track: explicit ids, else a name, else the config default.
+  // Resolve the conversion(s) to track: explicit ids, else an explicit name,
+  // else the config default list (defaultConversionNames).
   let conversionIds = input.conversionIds ?? [];
   if (conversionIds.length === 0) {
-    const name = input.conversionName ?? (await loadConfig()).defaultConversionName;
-    if (name) {
+    const names = input.conversionName
+      ? [input.conversionName]
+      : resolveDefaultConversionNames(await loadConfig());
+    const resolved: string[] = [];
+    for (const name of names) {
       const id = await resolveConversionIdByName(client, input.accountId, name);
-      if (id) conversionIds = [id];
-      else warnings.push(`Conversion "${name}" not found in this account; campaign created without it.`);
+      if (id) resolved.push(id);
+      else warnings.push(`Conversion "${name}" not found in this account; skipped.`);
     }
+    conversionIds = resolved;
   }
 
   // 2. Campaign group (DRAFT). runSchedule is required even for drafts.
